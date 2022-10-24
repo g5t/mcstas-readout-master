@@ -27,7 +27,7 @@ SHARE
 #include <sys/time.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "wrapper.h"
+#include "ReadoutBIFROST.h"
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
