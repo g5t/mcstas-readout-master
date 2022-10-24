@@ -19,7 +19,7 @@ int start_receiver = 1,
 int verbose=0
 )
 OUTPUT PARAMETERS ()
-DEPENDENCY "-L. -Lbuild -lwrapper"
+DEPENDENCY "-L. -Lbuild -lReadoutBIFROST"
 SHARE
 %{
 #include <signal.h>
