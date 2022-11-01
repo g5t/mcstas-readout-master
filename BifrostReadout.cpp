@@ -8,6 +8,7 @@
 #include "BifrostReadout.h"
 #include <arpa/inet.h>
 #include <cstring>
+#include <iostream>
 #include <stdexcept>
 
 /// \brief Use MSG_SIGNAL on Linuxes
