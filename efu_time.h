@@ -4,7 +4,6 @@
 
 #ifndef MCSTAS_UDP_TRANSMIT_EFU_TIME_H
 #define MCSTAS_UDP_TRANSMIT_EFU_TIME_H
-#include "BifrostReadout.h"
 #include <chrono>
 #include <cmath>
 #include <iostream>

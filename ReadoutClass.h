@@ -2,7 +2,7 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// \brief Bifrost UDP readout generator class
+/// \brief UDP readout generator class
 ///
 //===----------------------------------------------------------------------===//
 #pragma once
@@ -13,10 +13,10 @@
 #include <string>
 #include <sys/socket.h>
 
-class BifrostReadout {
+class Readout {
 public:
-  BifrostReadout(std::string IpAddress, int UDPPort)
-      : ipaddr(IpAddress), port(UDPPort) {
+  Readout(std::string IpAddress, int UDPPort, int TCPPort, int Type=0x34)
+      : ipaddr(IpAddress), port(UDPPort), tcp_port(TCPPort), Type(Type) {
     sockOpen(ipaddr, port);
   }
 
@@ -34,9 +34,13 @@ public:
   // Initialize a new packet with no readouts
   void newPacket();
 
+  // Tell the (remote) device to shut down
+  int command_shutdown();
+
 private:
   // setup socket for transmission
   void sockOpen(std::string ipaddr, int port);
+//  void commandOpen(std::string ipaddr, int port);
 
   // Packet header
   uint32_t phi{0}; // pulse and prev pulse high and low
@@ -46,7 +50,7 @@ private:
 
   int SeqNum{0};
   int OutputQueue{0};
-  int Type{0x34};
+  int Type; // 0x34 for BIFROST, 0x41 for He3CSPEC
 
   // TX Buffer
   PacketHeaderV0 *hp;
@@ -59,4 +63,6 @@ private:
   // BSD Socket specifics
   int fd; // socket file descriptor
   struct sockaddr_in remoteSockAddr;
+
+  int tcp_port{8888};
 };
