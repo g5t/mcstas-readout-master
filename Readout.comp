@@ -1,4 +1,4 @@
-DEFINE COMPONENT Readout_Master
+DEFINE COMPONENT Readout
 DEFINITION PARAMETERS()
 SETTING PARAMETERS (
 string ring = 0,
@@ -25,7 +25,7 @@ int verbose=0,
 int ess_readout_type=52 // 0x34 == 52, 0x41==65
 )
 OUTPUT PARAMETERS ()
-DEPENDENCY "-I/home/g/Documents/ESS/McStas/Readout_BIFROST/ -L/home/g/Documents/ESS/McStas/Readout_BIFROST/build/ -lReadoutBIFROST"
+DEPENDENCY "-Wl,-rpath,CMD(readout-config --show libdir) -LCMD(readout-config --show libdir) -lReadout -ICMD(readout-config --show includedir)"
 SHARE
 %{
 #include <signal.h>
@@ -37,7 +37,7 @@ SHARE
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "ReadoutBIFROST.h"
+#include <Readout.h>
 
   int pid_dead(int pid){
     struct stat sts;
@@ -70,7 +70,7 @@ SHARE
 DECLARE
 %{
 // pre-declare the stateful object
-bifrost_readout_t* bifrost;
+readout_t* readout_ptr;
 //
 int child_pid;
 %}
@@ -79,12 +79,12 @@ INITIALIZE
 %{
 // Include the header file and run any initialization for the real broadcaster
 if (ip == 0 || ip[0] == '\0'){
-	bifrost = bifrost_readout_create("127.0.0.1", port, command_port, pulse_rate, ess_readout_type);
+	readout_ptr = readout_create("127.0.0.1", port, command_port, pulse_rate, ess_readout_type);
 } else {
-	bifrost = bifrost_readout_create(ip, port, command_port, pulse_rate, ess_readout_type);
+	readout_ptr = readout_create(ip, port, command_port, pulse_rate, ess_readout_type);
 }
 // First and 'last' pulse times set by creation function
-bifrost_readout_newPacket(bifrost);
+readout_newPacket(readout_ptr);
 
 // Make sure the provided property names are accessible -- no error checking later
 int failure=0;
@@ -223,7 +223,7 @@ if (event_count) {
   //printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, TUBE, A, B, double_tof, event_count);
   for (int i=0; i<1 /*event_count*/; ++i){
     // Send the event to the broadcaster to be accumulated and broadcast
-    if (broadcast) bifrost_readout_add(bifrost, RING, FEN, double_tof, TUBE, A, B);
+    if (broadcast) readout_add(readout_ptr, RING, FEN, double_tof, TUBE, A, B);
   }
 }
 %}
@@ -231,11 +231,11 @@ if (event_count) {
 FINALLY
 %{
 // perform any teardown of the stateful broadcaster
-if (broadcast) bifrost_readout_send(bifrost);
+if (broadcast) readout_send(readout_ptr);
 // Shut down the remote component if we started it locally and it's still running
 if (child_pid && !pid_dead(child_pid)) {
 	printf("Readout_BIFROST=%s: Stopping child with pid %d:\n", NAME_CURRENT_COMP, child_pid);
-  int res = bifrost_readout_shutdown(bifrost);
+  int res = readout_shutdown(readout_ptr);
   if (res) {
     // See if the child exists *and* we are allowed to ask the child to stop
     sleep(1);
@@ -255,7 +255,7 @@ if (child_pid && !pid_dead(child_pid)) {
   }
 }
 // Remove the interface component
-bifrost_readout_destroy(bifrost);
+readout_destroy(readout_ptr);
 
 %}
 

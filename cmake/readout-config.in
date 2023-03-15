@@ -21,13 +21,13 @@ shell_quote = lambda s: shlex.quote(str(s) if hasattr(s, '__fspath__') else s)
 cmakebool = lambda s: bool(s.lower() in ['1', 'on', 'yes', 'y', 'true'] or (s.isdigit() and int(s) > 1))
 
 # Information filled out by CMake (todo: put all logic below on cmake-side?):
-installation_info = dict(libdir='@Readout_relpath_BINDIR2LIBDIR@',
-                         includedir='@Readout_relpath_BINDIR2INCDIR@',
+installation_info = dict(libdir='@Readout_BIN2LIB@',
+                         includedir='@Readout_BIN2INC@',
                          libname='@Readout_LIBNAME@',
                          version='@Readout_VERSION@',
-                         bindir='.',#by definition, since readout-config is always installed in this directory
-                         ldflags='-Wl,-rpath,<LIBDIR> -L<LIBDIR> -l@Readout_LIBNAME@'.strip(),#expand LIBDIR dynamically below
-                         cflags='-I<INCLUDEDIR>',#expand INCLUDEDIR dynamically below
+                         bindir='.',  # by definition, since readout-config is always installed in this directory
+                         ldflags='-Wl,-rpath,<LIBDIR> -L<LIBDIR> -l@Readout_LIBNAME@'.strip(),  # expand LIBDIR dynamically below
+                         cflags='-I<INCLUDEDIR>',  # expand INCLUDEDIR dynamically below
                          )
 
 __version__ = installation_info['version']
@@ -49,7 +49,7 @@ def lookup_choice(name):
     if info is None:
         # represent missing info with empty string.
         return ''
-    if name in ['libname', 'libnameg4', 'build_type', 'version', 'builtin_plugins']:
+    if name in ['libname', 'version']:
         # not a resolvable path
         return info
     elif name == 'ldflags':
