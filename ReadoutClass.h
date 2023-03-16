@@ -13,6 +13,8 @@
 #include <string>
 #include <sys/socket.h>
 
+enum class Verbosity {silent, errors, warnings, info, details};
+
 class Readout {
 public:
   Readout(std::string IpAddress, int UDPPort, int TCPPort, int Type=0x34)
@@ -37,9 +39,23 @@ public:
   // Tell the (remote) device to shut down
   int command_shutdown();
 
+  // Set verbosity via enum
+  int verbose(Verbosity v){
+    switch (v) {
+      case Verbosity::details: verbosity=3; break;
+      case Verbosity::info: verbosity=2; break;
+      case Verbosity::warnings: verbosity=1; break;
+      case Verbosity::errors: verbosity=0; break;
+      case Verbosity::silent: verbosity=-1; break;
+      default: verbosity=0;
+    }
+    return verbosity;
+  }
+  int verbose(int v){verbosity = v; return verbosity;}
+
 private:
   // setup socket for transmission
-  void sockOpen(std::string ipaddr, int port);
+  void sockOpen(const std::string& ipaddr, int remote_port);
 //  void commandOpen(std::string ipaddr, int port);
 
   // Packet header
@@ -58,11 +74,13 @@ private:
   const int MaxDataSize{8950};
   int DataSize{0};
   // IP and port number
-  std::string ipaddr{""};
+  std::string ipaddr;
   int port{9000};
   // BSD Socket specifics
   int fd; // socket file descriptor
   struct sockaddr_in remoteSockAddr;
 
   int tcp_port{8888};
+
+  int verbosity{0};
 };

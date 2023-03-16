@@ -137,6 +137,49 @@ extern "C" {
     return obj->command_shutdown();
   }
 
+  // Set the verbose level of the readout sender to emit nothing to standard output
+  int readout_silent(readout_t* r_ptr){
+    Readout* obj;
+    if (r_ptr == nullptr) return 0;
+    obj = static_cast<Readout*>(r_ptr->obj);
+    return obj->verbose(Verbosity::silent);
+  }
+  // Set the verbose level of the readout sender to emit extra error messages to standard output
+  int readout_print_errors(readout_t* r_ptr){
+    Readout* obj;
+    if (r_ptr == nullptr) return 0;
+    obj = static_cast<Readout*>(r_ptr->obj);
+    return obj->verbose(Verbosity::errors);
+  }
+  // Set the verbose level of the readout sender to emit warnings and extra error messages to standard output
+  int readout_print_warnings(readout_t* r_ptr){
+    Readout* obj;
+    if (r_ptr == nullptr) return 0;
+    obj = static_cast<Readout*>(r_ptr->obj);
+    return obj->verbose(Verbosity::warnings);
+  }
+  // Set the verbose level of the readout sender to emit info, warnings and extra error messages to standard output
+  int readout_print_info(readout_t* r_ptr){
+    Readout* obj;
+    if (r_ptr == nullptr) return 0;
+    obj = static_cast<Readout*>(r_ptr->obj);
+    return obj->verbose(Verbosity::info);
+  }
+  // Set the verbose level of the readout sender to emit extra detail messages to standard output
+  int readout_print_details(readout_t* r_ptr){
+    Readout* obj;
+    if (r_ptr == nullptr) return 0;
+    obj = static_cast<Readout*>(r_ptr->obj);
+    return obj->verbose(Verbosity::details);
+  }
+
+  // Set the verbose level from an integer -- look at ReadoutClass.h
+  int readout_verbose(readout_t* r_ptr, int v){
+    Readout* obj;
+    if (r_ptr == nullptr) return 0;
+    obj = static_cast<Readout*>(r_ptr->obj);
+    return obj->verbose(v);
+  }
 
   // 
 #ifdef __cplusplus

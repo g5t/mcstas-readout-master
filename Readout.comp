@@ -15,13 +15,12 @@ pulse_rate = 14,
 int noisy=0,
 noise_level=0.1,
 string event_mode = "p",
-event_enhancement=5e5,
 string receiver = 0,
 string options = 0,
 string filename = 0,
 int hdf5_output = 1,
 int start_receiver = 1,
-int verbose=0,
+int verbose=0, // -1: silent, 0: errors, 1: warnings, 2: info, 3: details
 int ess_readout_type=52 // 0x34 == 52, 0x41==65
 )
 OUTPUT PARAMETERS ()
@@ -71,7 +70,6 @@ DECLARE
 %{
 // pre-declare the stateful object
 readout_t* readout_ptr;
-//
 int child_pid;
 %}
 
@@ -83,8 +81,8 @@ if (ip == 0 || ip[0] == '\0'){
 } else {
 	readout_ptr = readout_create(ip, port, command_port, pulse_rate, ess_readout_type);
 }
-// First and 'last' pulse times set by creation function
 readout_newPacket(readout_ptr);
+readout_verbose(readout_ptr, verbose);
 
 // Make sure the provided property names are accessible -- no error checking later
 int failure=0;
@@ -156,14 +154,13 @@ if (broadcast && start_receiver && (!ip || !strcmp(ip, "127.0.0.1") || !strcmp(i
     newargs[n_spaces + 7] = outfile;
   }
 
-  if (1 || verbose) {
+  if (verbose > 1) {
     printf("Execute the call in this thread:\n\t");
     for (int i=0; i<n_spaces + 2 + extra_args; ++i){
       printf("%s ", newargs[i]);
     }
     printf("\n");
   }
-
 
   child_pid = fork();
   if (0 == child_pid) {
@@ -219,8 +216,8 @@ if (event_count) {
   uint8_t TUBE = (uint8_t)int_tube;
   uint16_t A = (uint16_t)int_A;
   uint16_t B = (uint16_t)int_B;
-  
-  //printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, TUBE, A, B, double_tof, event_count);
+  if (verbose > 2)
+    printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, TUBE, A, B, double_tof, event_count);
   for (int i=0; i<1 /*event_count*/; ++i){
     // Send the event to the broadcaster to be accumulated and broadcast
     if (broadcast) readout_add(readout_ptr, RING, FEN, double_tof, TUBE, A, B);
@@ -234,13 +231,14 @@ FINALLY
 if (broadcast) readout_send(readout_ptr);
 // Shut down the remote component if we started it locally and it's still running
 if (child_pid && !pid_dead(child_pid)) {
-	printf("Readout_BIFROST=%s: Stopping child with pid %d:\n", NAME_CURRENT_COMP, child_pid);
+  if (verbose > 1)
+	  printf("Readout_BIFROST=%s: Stopping child with pid %d:\n", NAME_CURRENT_COMP, child_pid);
   int res = readout_shutdown(readout_ptr);
   if (res) {
     // See if the child exists *and* we are allowed to ask the child to stop
     sleep(1);
   	int res = kill(child_pid, 0);
-  	if (res) {printf("Child %d is still running\n", child_pid);}
+  	if (res && verbose > 1) {printf("Child %d is still running\n", child_pid);}
   	if (!res){ // no error, no-signal succeeded
   	  res = kill(child_pid, SIGINT);
       sleep(2);

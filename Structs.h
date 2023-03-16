@@ -26,8 +26,8 @@ struct PacketHeaderV0 {
   uint32_t SeqNum;
 } __attribute__((packed));
 
-// As per BIFROST ICD
-struct BifrostData {
+// As per BIFROST ICD -- matches all CAEN readout instruments?
+struct CaenData {
   uint8_t Ring;
   uint8_t FEN;
   uint16_t Length;

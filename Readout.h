@@ -33,6 +33,19 @@ extern "C" {
   // Send the command-port of the Event Formation Unit the exit signal
   int readout_shutdown(readout_t* r_ptr);
 
+  // Set the verbose level of the readout sender to emit nothing to standard output
+  int readout_silent(readout_t* r_ptr);
+  // Set the verbose level of the readout sender to emit extra error messages to standard output
+  int readout_print_errors(readout_t* r_ptr);
+  // Set the verbose level of the readout sender to emit warnings and extra error messages to standard output
+  int readout_print_warnings(readout_t* r_ptr);
+  // Set the verbose level of the readout sender to emit info, warnings and extra error messages to standard output
+  int readout_print_info(readout_t* r_ptr);
+  // Set the verbose level of the readout sender to emit extra detail messages to standard output
+  int readout_print_details(readout_t* r_ptr);
+  // Set the verbose level from an integer -- look at ReadoutClass.h
+  int readout_verbose(readout_t* r_ptr, int);
+
 #ifdef __cplusplus
 }
 #endif
