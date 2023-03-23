@@ -64,17 +64,125 @@ SHARE
     while ((prod *= rand01()) > criteria) ++count;
     return count;
   }
+
+  struct receiver_parameters_struct {
+    char * dirname;
+    char * filename;
+    char * compname;
+    int output;
+    char * receiver;
+    char * options;
+    int port;
+    int command_port;
+    int verbose;
+  };
+  typedef struct receiver_parameters_struct receiver_parameters_t;
+
+//  int spawn_broadcaster(receiver_parameters_t * params){
+  int spawn_broadcaster(const char * dirname, const char * filename, const char * compname,
+                        const int output, const char * receiver, const char * options,
+                        const int port, const int command_port, const int verbose){
+    // no-ip --> 127.0.0.1 above
+    // For localhost/127.0.0.1 we should start the server
+    char outfile[PATH_MAX];
+    getcwd(outfile, sizeof(outfile));
+    if (dirname && dirname[0] != '\0'){
+      strcat(outfile, "/");
+      strcat(outfile, dirname);
+    }
+    strcat(outfile, "/");
+    if (filename && filename[0] != '\0'){
+      strcat(outfile, filename);
+    } else {
+      strcat(outfile, compname);
+    }
+
+    char logfile[PATH_MAX];
+    strcpy(logfile, outfile);
+    strcat(logfile, ".log");
+
+    int extra_args = (output ? 2 : 0) + 4;
+
+    // separate the options -- we need to count the number of spaces in the options string
+    char buffer[1000];
+    strcpy(buffer, options);
+    int n_spaces = 0;
+    for (int i=0; buffer[i] != '\0'; ++i) if (buffer[i] == ' ') ++n_spaces;
+    // allocate pointers for the new split arguments
+    char ** newargs = calloc(n_spaces + 2 + extra_args, sizeof(char*)); // [executable, option0, ... optionN, output-flag, output-directory]
+    // split and copy the strings
+    char * pch;
+    pch = strtok(buffer, " ");
+    int index = 1;
+    while (pch != NULL && index < n_spaces + 2 + extra_args) {
+      newargs[index] = calloc(strlen(pch), sizeof(char));
+      strcpy(newargs[index], pch);
+      index++;
+      pch = strtok(NULL, " ");
+    }
+    // copy the receiver executable string
+    newargs[0] = calloc(1+strlen(receiver), sizeof(char));
+    strcpy(newargs[0], receiver);
+    //newargs[0] = receiver;
+    // specify the receiver port
+    newargs[n_spaces + 2] = "-p";
+    newargs[n_spaces + 3] = calloc(10, sizeof(char));
+    sprintf(newargs[n_spaces + 3], "%ld", port);
+    // specify the command port
+    newargs[n_spaces + 4] = "-m";
+    newargs[n_spaces + 5] = calloc(10, sizeof(char));
+    sprintf(newargs[n_spaces + 5], "%ld", command_port);
+
+    if (output) {
+      newargs[n_spaces + 6] = "--dumptofile";
+      // we already combined the CWD, directory, and filename -- add .h5 as part of bad hack
+      strcat(outfile, ".h5"); // trick the EFU to use *our* specified filename... but it's filname.h5.h5 :/
+      newargs[n_spaces + 7] = outfile;
+    }
+
+    if (verbose > 1) {
+      printf("Execute the call in this thread:\n\t");
+      for (int i=0; i<n_spaces + 2 + extra_args; ++i){
+        printf("%s ", newargs[i]);
+      }
+      printf("\n");
+    }
+
+    int child_pid = fork();
+    if (0 == child_pid) {
+      // This *is* the child, setup stdout/stderr redirection
+      int child_fd = open(logfile, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+      dup2(child_fd, 1); // redirect stdout to file
+      dup2(child_fd, 2); // redirect stderr to file
+      if (child_fd) close(child_fd); // dup'ed handles suffice for output at this point
+      // change the execution stack
+      char * envs[] = {NULL};
+      execve(newargs[0], newargs, envs);
+    }
+    // execution from here is only in the parent:
+    sleep(1);
+    return child_pid;
+  }
 %}
 
 DECLARE
 %{
 // pre-declare the stateful object
+receiver_parameters_t* receiver_parameters_ptr;
 readout_t* readout_ptr;
 int child_pid;
 %}
 
 INITIALIZE
 %{
+#if defined(USE_MPI)
+MPI_MASTER(
+#endif
+  
+#if defined(USE_MPI)
+);
+#endif
+
 // Include the header file and run any initialization for the real broadcaster
 if (ip == 0 || ip[0] == '\0'){
 	readout_ptr = readout_create("127.0.0.1", port, command_port, pulse_rate, ess_readout_type);
@@ -95,85 +203,15 @@ particle_getvar(_particle,  tof, &failure); if (failure) throw_error(NAME_CURREN
 
 child_pid = 0; // in case we are not spawning a child; don't try to kill one later
 if (broadcast && start_receiver && (!ip || !strcmp(ip, "127.0.0.1") || !strcmp(ip, "localhost"))){
-  // no-ip --> 127.0.0.1 above
-  // For localhost/127.0.0.1 we should start the server 
-  char outfile[PATH_MAX];
-  getcwd(outfile, sizeof(outfile));
-  if (dirname && dirname[0] != '\0'){
-    strcat(outfile, "/");
-    strcat(outfile, dirname);
-  }
-  strcat(outfile, "/");  
-  if (filename && filename[0] != '\0'){
-    strcat(outfile, filename);
-  } else {
-    strcat(outfile, NAME_CURRENT_COMP);
-  }
-
-  char logfile[PATH_MAX];
-  strcpy(logfile, outfile);
-  strcat(logfile, ".log");
-
-  int extra_args = (hdf5_output ? 2 : 0) + 4;
-
-  // separate the options -- we need to count the number of spaces in the options string
-  char buffer[1000];
-  strcpy(buffer, options);
-  int n_spaces = 0;
-  for (int i=0; buffer[i] != '\0'; ++i) if (buffer[i] == ' ') ++n_spaces;
-  // allocate pointers for the new split arguments
-  char ** newargs = calloc(n_spaces + 2 + extra_args, sizeof(char*)); // [executable, option0, ... optionN, output-flag, output-directory]
-  // split and copy the strings
-  char * pch;
-  pch = strtok(buffer, " ");
-  int index = 1;
-  while (pch != NULL && index < n_spaces + 2 + extra_args) {
-    newargs[index] = calloc(strlen(pch), sizeof(char));
-    strcpy(newargs[index], pch);
-    index++;
-    pch = strtok(NULL, " ");
-  }
-  newargs[0] = receiver;
-  // specify the receiver port
-  newargs[n_spaces + 2] = "-p";
-  newargs[n_spaces + 3] = calloc(10, sizeof(char));
-  sprintf(newargs[n_spaces + 3], "%ld", port);
-  // specify the command port
-  newargs[n_spaces + 4] = "-m";
-  newargs[n_spaces + 5] = calloc(10, sizeof(char));
-  sprintf(newargs[n_spaces + 5], "%ld", command_port);
-
-  if (hdf5_output) {
-    newargs[n_spaces + 6] = "--dumptofile";
-    // combine the directory name and filename;
-    if (dirname && dirname[0] != '\0'){
-      strcpy(buffer, dirname);
-      strcat(buffer, "/");
-    }
-    strcat(outfile, ".h5"); // was "_" previously -- why did this change?
-    newargs[n_spaces + 7] = outfile;
-  }
-
-  if (verbose > 1) {
-    printf("Execute the call in this thread:\n\t");
-    for (int i=0; i<n_spaces + 2 + extra_args; ++i){
-      printf("%s ", newargs[i]);
-    }
-    printf("\n");
-  }
-
-  child_pid = fork();
-  if (0 == child_pid) {
-    // This *is* the child, setup stdout/stderr redirection
-    int child_fd = open(logfile, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-    dup2(child_fd, 1); // redirect stdout to file
-    dup2(child_fd, 2); // redirect stderr to file
-    if (child_fd) close(child_fd); // dup'ed handles suffice for output at this point
-    // change the execution stack
-    char * envs[] = {NULL};
-    execve(newargs[0], newargs, envs);
-  }
-  sleep(1);
+#if defined(USE_MPI)
+  MPI_MASTER(
+#endif
+  child_pid = spawn_broadcaster(dirname, filename, NAME_CURRENT_COMP, hdf5_output, receiver, options, port, command_port, verbose);
+#if defined(USE_MPI)
+  );
+  // Make sure everyone waits for the receiver to be spawned
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
 }
 
 %}
@@ -230,9 +268,13 @@ FINALLY
 // perform any teardown of the stateful broadcaster
 if (broadcast) readout_send(readout_ptr);
 // Shut down the remote component if we started it locally and it's still running
+#if defined(USE_MPI)
+  // Wait for everyone to have sent their last packet
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_MASTER(
+#endif
 if (child_pid && !pid_dead(child_pid)) {
-  if (verbose > 1)
-	  printf("Readout_BIFROST=%s: Stopping child with pid %d:\n", NAME_CURRENT_COMP, child_pid);
+  if (verbose > 1) printf("Readout_BIFROST=%s: Stopping child with pid %d:\n", NAME_CURRENT_COMP, child_pid);
   int res = readout_shutdown(readout_ptr);
   if (res) {
     // See if the child exists *and* we are allowed to ask the child to stop
@@ -249,9 +291,12 @@ if (child_pid && !pid_dead(child_pid)) {
       if (!pid_dead(child_pid)){
         res = kill(child_pid, SIGKILL);
       }
-  	}
+    }
   }
 }
+#if defined(USE_MPI)
+  );
+#endif
 // Remove the interface component
 readout_destroy(readout_ptr);
 
