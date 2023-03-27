@@ -23,6 +23,7 @@ cmakebool = lambda s: bool(s.lower() in ['1', 'on', 'yes', 'y', 'true'] or (s.is
 # Information filled out by CMake (todo: put all logic below on cmake-side?):
 installation_info = dict(libdir='@Readout_BIN2LIB@',
                          includedir='@Readout_BIN2INC@',
+                         compdir='@Readout_BIN2DATA@',
                          libname='@Readout_LIBNAME@',
                          version='@Readout_VERSION@',
                          bindir='.',  # by definition, since readout-config is always installed in this directory

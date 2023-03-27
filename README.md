@@ -82,7 +82,7 @@ After cloning this repository, use CMake to configure, build, and install the sh
 To install the library and configuration-query tool within the current user's home directory, e.g., execute 
 ```bash
 git clone https://github.com/g5t/mcstas-readout-master.git
-cmake -S mcstas-readout-master -B mcstas-readout-master-build -DCMAKE_INSTALL_PATH=~
+cmake -S mcstas-readout-master -B mcstas-readout-master-build -DCMAKE_INSTALL_PATH=~/.local
 cmake --build mcstas-readout-master-build --target install
 ```
 
@@ -99,3 +99,39 @@ By default the output HDF5 files are placed within the McStas output directory, 
 McStas can be run on any number of MPI workers. If the `Readout` component is run in MPI all nodes should have network
 access to the host running the EFU. If the EFU is controlled by the `Readout` component, it will be started only by the
 master MPI node.
+
+# Use
+Once installed as above, you can include the readout component in an exising McStas instrument by placing something
+similar to the following in the TRACE section (likely at the end)
+```c
+TRACE
+  ...
+  COMPONENT readout = Readout(ring="RING", fen="FEN", tube="TUBE", a="left", b="right", ...)
+  AT (0, 0, 0) ABSOLUTE
+  ...
+```
+
+The component file, however, is not typically on the McStas search path which will prevent the instrument from compiling.
+To solve this issue you have a number of options:
+- Copy the component file to the instrument directory
+- Create a symbolic link from the cloned repository file, e.g., `ln -s ~/mcstas-readout-master/Readout.comp`
+- Modify the McStas component search path, e.g., `mcstas your_cool.instr -I ~/mcstas-readout-master`
+
+Internally, the component file uses the installed executable script `readout-config` to locate the requisite shared
+library and its header which are included automatically in the compilation by `mcrun`.
+
+
+## Future McStas use
+The development version of McStas-3 now supports instrument (and component) based search-path specification,
+which allows for simpler system configuration when using this component.
+
+As an example, if installed as specified above the following in the `TRACE` section of an instrument works without
+further modifications to McStas or explicit moving/linking of the component file into the instrument runtime directory:
+```c
+TRACE
+  ...
+  SEARCH SHELL "readout-config --show compdir"
+  COMPONENT readout = Readout(ring="RING", fen="FEN", tube="TUBE", a="left", b="right", ...)
+  AT (0, 0, 0) ABSOLUTE
+  ...
+```
