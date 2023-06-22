@@ -50,6 +50,28 @@ void Readout::newPacket() {
   DataSize = sizeof(struct PacketHeaderV0);
 }
 
+static int hostname_to_ip(const char * hostname, char * ip, int verbosity){
+  struct addrinfo *server_info, hints{};
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  int rv;
+  if ((rv = getaddrinfo(hostname, "http", &hints, &server_info)) != 0){
+    if (verbosity > -1) fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+    throw std::runtime_error("Hostname resolution failed");
+  }
+  rv = 1;
+  for (struct addrinfo *p=server_info; p != nullptr; p = p->ai_next){
+    auto h = (struct sockaddr_in *) p->ai_addr;
+    if (h->sin_addr.s_addr) {
+      strcpy(ip, inet_ntoa(h->sin_addr));
+      rv = 0;
+    }
+  }
+  freeaddrinfo(server_info);
+  return rv;
+}
+
 void Readout::sockOpen(const std::string& addr, int remote_port) {
   fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (fd < 0) {
@@ -61,10 +83,17 @@ void Readout::sockOpen(const std::string& addr, int remote_port) {
   remoteSockAddr.sin_family = AF_INET;
   remoteSockAddr.sin_port = htons(remote_port);
 
-  int ret = inet_aton(addr.c_str(), &remoteSockAddr.sin_addr);
+  // Attempt to resolve the address, in case it is a FQDN and not a string-encode IP address:
+  char ip[100];
+  if (hostname_to_ip(addr.c_str(), ip, verbosity)) {
+    if (verbosity > -1) printf("Failed to identify a non-zero IP address for %s\n", addr.c_str());
+    throw std::runtime_error("sockOpen() failed due to 0.0.0.0 IP address");
+  }
+
+  int ret = inet_aton(ip, &remoteSockAddr.sin_addr);
   if (ret == 0) {
-    if (verbosity > -1) printf("setRemoteSocket(): invalid ip address %s", addr.c_str());
-    throw std::runtime_error("sock_open() failed");
+    if (verbosity > -1) printf("sockOpen(): invalid ip address %s", ip);
+    throw std::runtime_error("sockOpen() failed");
   }
 
   hp = (PacketHeaderV0 *)&buffer[0];
