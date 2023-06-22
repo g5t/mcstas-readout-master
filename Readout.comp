@@ -202,7 +202,7 @@ particle_getvar(_particle,    b, &failure); if (failure) throw_error(NAME_CURREN
 particle_getvar(_particle,  tof, &failure); if (failure) throw_error(NAME_CURRENT_COMP,  tof);
 
 child_pid = 0; // in case we are not spawning a child; don't try to kill one later
-if (!receiver) start_receiver = 0; // we can not start a nullptr named program
+if (!receiver || receiver[0] == '\0') start_receiver = 0; // we can not start an unnamed program
 if (broadcast && start_receiver && (!ip || !strcmp(ip, "127.0.0.1") || !strcmp(ip, "localhost"))){
 #if defined(USE_MPI)
   MPI_MASTER(
