@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-project(Readout VERSION 0.2.0 LANGUAGES CXX)
+project(Readout VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_MACOSX_RPATH OFF)
 
