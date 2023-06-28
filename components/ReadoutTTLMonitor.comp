@@ -4,7 +4,7 @@ SETTING PARAMETERS (
 string ring = 0,
 string fen = 0,
 string pos = 0,
-string channel = 0.
+string channel = 0,
 string adc = 0,
 string tof = "t",
 string ip = 0,
