@@ -114,7 +114,7 @@ int event_count = readout_ttlmonitor_rand_poisson(pp);
 
 int is_noise = (!event_count && noisy && rand01() < noise_level) ? 1 : 0;
 
-int int_ring, int_fen, int_tube, int_A, int_B;
+int int_ring, int_fen, int_pos, int_channel, int_adc;
 double double_tof;
 
 if (event_count) {
