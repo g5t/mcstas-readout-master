@@ -1,0 +1,166 @@
+DEFINE COMPONENT ReadoutTTLMonitor
+DEFINITION PARAMETERS()
+SETTING PARAMETERS (
+string ring = 0,
+string fen = 0,
+string pos = 0,
+string channel = 0.
+string adc = 0,
+string tof = "t",
+string ip = 0,
+int ring_value=0,
+int fen_value=0,
+int pos_value=0,
+int channel_value=0,
+int port = 9000,
+int command_port = 10800,
+int broadcast = 1,
+pulse_rate = 14,
+int noisy=0,
+noise_level=0.1,
+string event_mode = "p",
+int verbose=0, // -1: silent, 0: errors, 1: warnings, 2: info, 3: details
+int ess_type=16 // TTLMonitor should always be 0x10 == 16
+)
+OUTPUT PARAMETERS ()
+DEPENDENCY "-Wl,-rpath,CMD(readout-config --show libdir) -LCMD(readout-config --show libdir) -lReadout -ICMD(readout-config --show includedir)"
+SHARE
+%{
+#include <signal.h>
+#include <unistd.h> // for execve
+#include <sys/time.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <Readout.h>
+
+  void readout_ttlmonitor_error(char* named, char* variable){
+    printf("ReadoutCAEN: %s: Particle variable %s inaccessible, exiting.\n", named, variable);
+    exit(-1);
+  }
+  int readout_ttlmonitor_particle_getvar_int(_class_particle* p, char* name){
+      double bits = particle_getvar(p, name, 0);
+      return *(int*)&bits;
+  }
+  int readout_ttlmonitor_rand_poisson(double rate){
+    //double rand_exp = -log(rand01()) / rate;
+    double criteria = exp(-rate);
+    int count=0;
+    double prod=1;
+    while ((prod *= rand01()) > criteria) ++count;
+    return count;
+  }
+%}
+
+DECLARE
+%{
+// pre-declare the stateful objects
+TTLMonitor_readout_t readout_data;
+readout_t* readout_ptr;
+int p_or_pp;
+int ring_present;
+int fen_present;
+int pos_present;
+int channel_present;
+%}
+
+INITIALIZE
+%{
+
+// Include the header file and run any initialization for the real broadcaster
+if (ip == 0 || ip[0] == '\0'){
+	readout_ptr = readout_create("127.0.0.1", port, command_port, pulse_rate, ess_type);
+} else {
+	readout_ptr = readout_create(ip, port, command_port, pulse_rate, ess_type);
+}
+readout_newPacket(readout_ptr);
+readout_verbose(readout_ptr, verbose);
+
+ring_present = ((ring != NULL) && (ring[0] != '\0')) ? 1 : 0;
+fen_present = ((fen != NULL) && (fen[0] != '\0')) ? 1 : 0;
+pos_present = ((pos != NULL) && (pos[0] != '\0')) ? 1 : 0;
+channel_present = ((channel != NULL) && (channel[0] != '\0')) ? 1 : 0;
+// Make sure the provided property names are accessible -- no error checking later
+int failure=0;
+if (ring_present){
+    particle_getvar(_particle, ring, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, ring);
+}
+if (fen_present){
+    particle_getvar(_particle, fen, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, fen);
+}
+if (pos_present){
+    particle_getvar(_particle, pos, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, pos);
+}
+if (channel_present){
+    particle_getvar(_particle, channel, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, channel);
+}
+particle_getvar(_particle, adc, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, adc);
+particle_getvar(_particle, tof, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, tof);
+
+p_or_pp = (strcmp(event_mode, "p") == 0) ? 0 : 1;
+if (p_or_pp && !strcmp(event_mode, "pp")) readout_ttlmonitor_error(NAME_CURRENT_COMP, "Undefined event mode");
+
+%}
+
+TRACE
+%{
+double pp = particle_getvar(_particle, "p", 0) * sqrt((double)(mcget_ncount()));
+if (p_or_pp) pp *= pp;
+
+int event_count = readout_ttlmonitor_rand_poisson(pp);
+
+int is_noise = (!event_count && noisy && rand01() < noise_level) ? 1 : 0;
+
+int int_ring, int_fen, int_tube, int_A, int_B;
+double double_tof;
+
+if (event_count) {
+  int_ring = ring_present ? readout_ttlmonitor_particle_getvar_int(_particle, ring) : ring_value;
+  int_fen = fen_present ? readout_ttlmonitor_particle_getvar_int(_particle, fen) : fen_value;
+  int_pos = pos_present ? readout_ttlmonitor_particle_getvar_int(_particle, pos) : pos_value;
+  int_channel = channel_present ? readout_ttlmonitor_particle_getvar_int(_particle, channel) : channel_value;
+  int_adc = readout_ttlmonitor_particle_getvar_int(_particle, adc);
+  double_tof = particle_getvar(_particle, tof, 0);
+} else {
+  int_ring = (int)(rand01());
+  int_fen = 0;
+  int_pos = pos_value;
+  int_channel = channel_value;
+  int_adc = (int)(rand01() * 4096);
+  double_tof = rand01() / pulse_rate;
+}
+
+if (is_noise) event_count = 1;
+
+if (event_count) {
+  // add error checking of int -> uintN_t values?
+  uint8_t RING = (uint8_t)int_ring;
+  uint8_t FEN = (uint8_t)int_fen;
+  readout_data.ttlmonitor_readout_pos = (uint8_t)int_pos;
+  readout_data.ttlmonitor_readout_channel = (uint8_t)int_channel;
+  readout_data.ttlmonitor_readout_adc = (uint16_t)int_adc;
+  if (verbose > 2)
+    printf("(%2u %2u) (%2u %2u) %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, readout_data.ttlmonitor_readout_pos, readout_data.ttlmonitor_readout_channel, readout_data.ttlmonitor_readout_adc, double_tof, event_count);
+  for (int i=0; i<1 /*event_count*/; ++i){
+    // Send the event to the broadcaster to be accumulated and broadcast
+    if (broadcast) readout_add(readout_ptr, RING, FEN, double_tof, (const void *)(&readout_data));
+  }
+}
+%}
+
+FINALLY
+%{
+// perform any teardown of the stateful broadcaster
+if (broadcast) readout_send(readout_ptr);
+// Remove the interface component
+readout_destroy(readout_ptr);
+%}
+
+MCDISPLAY
+%{
+%}
+
+END

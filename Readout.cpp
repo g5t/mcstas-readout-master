@@ -53,37 +53,48 @@ extern "C" {
 
   // Add a readout value to the transmission buffer of the Readout object
   // Automatically transmits the packet if it is full.
-  void readout_add(
-      readout_t* r_ptr, uint8_t ring, uint8_t fen,
-      double time_of_flight,
-      uint8_t tube, uint16_t amplitude_a, uint16_t amplitude_b
-  )
-  {
-    //std::cout << "Adding readout to ReadoutMaster with " << unsigned(ring) << ", " << unsigned(fen);
-    //std::cout << ", " << time_of_flight << ", " << unsigned(tube) << ", ";
-    //std::cout << amplitude_a << ", " << amplitude_b << std::endl;
+//  void readout_add(
+//      readout_t* r_ptr, uint8_t ring, uint8_t fen,
+//      double time_of_flight,
+//      uint8_t tube, uint16_t amplitude_a, uint16_t amplitude_b
+//  )
+//  {
+//    //std::cout << "Adding readout to ReadoutMaster with " << unsigned(ring) << ", " << unsigned(fen);
+//    //std::cout << ", " << time_of_flight << ", " << unsigned(channel) << ", ";
+//    //std::cout << a << ", " << b << std::endl;
+//    readout_setPulseTime(r_ptr);
+//    Readout* obj;
+//    if (r_ptr == nullptr) return;
+//    obj = static_cast<Readout*>(r_ptr->obj);
+//    auto tof = efu_time(time_of_flight);
+//    /* The ReadoutMaster would not know if there was more than one frame during
+//     * the neutron's flight time:
+//     *  - Find the time from the most-recent pulse time, assuming no moderator
+//     *    emission time (this is already unreasonable)
+//     *  - Add the last pulse time to get a wall-clock time
+//    */
+//    // tof = (tof % (static_cast<efu_time*>(r_ptr->rep))) + static_cast<efu_time*>(r_ptr->time);
+//    /* At present, simulations focus only on the secondary spectrometer with
+//     * likely-unphysical energy bandwidth neutrons, so there is no way to work
+//     * out the number of source periods necessary to add to the event time minus
+//     * the last pulse time in order to recover the true time of flight.
+//     * Until such time as the simulations include the primary spectrometer with
+//     * physically relevant choppers, chopper speeds, and chopper phases, the
+//     * event time reported should be the 'true' ToF plus the last pulse time.
+//     * */
+//    tof = tof + static_cast<efu_time*>(r_ptr->time);
+//    obj->addReadout(ring, fen, tof.high(), tof.low(), tube, amplitude_a, amplitude_b);
+//  }
+
+  void readout_add(readout_t * r_ptr, uint8_t ring, uint8_t fen, double time_of_flight, const void * data){
     readout_setPulseTime(r_ptr);
-    Readout* obj;
+    Readout * obj;
     if (r_ptr == nullptr) return;
-    obj = static_cast<Readout*>(r_ptr->obj);
+    obj = static_cast<Readout *>(r_ptr->obj);
     auto tof = efu_time(time_of_flight);
-    /* The ReadoutMaster would not know if there was more than one frame during
-     * the neutron's flight time:
-     *  - Find the time from the most-recent pulse time, assuming no moderator
-     *    emission time (this is already unreasonable)
-     *  - Add the last pulse time to get a wall-clock time
-    */
-    // tof = (tof % (static_cast<efu_time*>(r_ptr->rep))) + static_cast<efu_time*>(r_ptr->time);
-    /* At present, simulations focus only on the secondary spectrometer with
-     * likely-unphysical energy bandwidth neutrons, so there is no way to work
-     * out the number of source periods necessary to add to the event time minus
-     * the last pulse time in order to recover the true time of flight.
-     * Until such time as the simulations include the primary spectrometer with
-     * physically relevant choppers, chopper speeds, and chopper phases, the
-     * event time reported should be the 'true' ToF plus the last pulse time.
-     * */
+    // the real data should have tof modulo the source period
     tof = tof + static_cast<efu_time*>(r_ptr->time);
-    obj->addReadout(ring, fen, tof.high(), tof.low(), tube, amplitude_a, amplitude_b);
+    obj->addReadout(ring, fen, tof.high(), tof.low(), data);
   }
 
   // Send the current data buffer for the Readout object
@@ -180,6 +191,7 @@ extern "C" {
     obj = static_cast<Readout*>(r_ptr->obj);
     return obj->verbose(v);
   }
+
 
   // 
 #ifdef __cplusplus

@@ -21,7 +21,7 @@ string filename = 0,
 int hdf5_output = 1,
 int start_receiver = 1,
 int verbose=0, // -1: silent, 0: errors, 1: warnings, 2: info, 3: details
-int ess_readout_type=52 // 0x34 == 52, 0x41==65
+int ess_type=52 // 0x34 == 52, 0x41==65
 )
 OUTPUT PARAMETERS ()
 DEPENDENCY "-Wl,-rpath,CMD(readout-config --show libdir) -LCMD(readout-config --show libdir) -lReadout -ICMD(readout-config --show includedir)"
@@ -64,21 +64,6 @@ SHARE
     while ((prod *= rand01()) > criteria) ++count;
     return count;
   }
-
-  struct receiver_parameters_struct {
-    char * dirname;
-    char * filename;
-    char * compname;
-    int output;
-    char * receiver;
-    char * options;
-    int port;
-    int command_port;
-    int verbose;
-  };
-  typedef struct receiver_parameters_struct receiver_parameters_t;
-
-//  int spawn_broadcaster(receiver_parameters_t * params){
   int spawn_broadcaster(const char * dirname, const char * filename, const char * compname,
                         const int output, const char * receiver, const char * options,
                         const int port, const int command_port, const int verbose){
@@ -168,9 +153,9 @@ SHARE
 DECLARE
 %{
 // pre-declare the stateful object
-receiver_parameters_t* receiver_parameters_ptr;
 readout_t* readout_ptr;
 int child_pid;
+CAEN_readout_t readout_data;
 %}
 
 INITIALIZE
@@ -185,9 +170,9 @@ MPI_MASTER(
 
 // Include the header file and run any initialization for the real broadcaster
 if (ip == 0 || ip[0] == '\0'){
-	readout_ptr = readout_create("127.0.0.1", port, command_port, pulse_rate, ess_readout_type);
+	readout_ptr = readout_create("127.0.0.1", port, command_port, pulse_rate, ess_type);
 } else {
-	readout_ptr = readout_create(ip, port, command_port, pulse_rate, ess_readout_type);
+	readout_ptr = readout_create(ip, port, command_port, pulse_rate, ess_type);
 }
 readout_newPacket(readout_ptr);
 readout_verbose(readout_ptr, verbose);
@@ -252,14 +237,14 @@ if (event_count) {
   // add error checking of int -> uintN_t values?
   uint8_t RING = (uint8_t)int_ring;
   uint8_t FEN = (uint8_t)int_fen;
-  uint8_t TUBE = (uint8_t)int_tube;
-  uint16_t A = (uint16_t)int_A;
-  uint16_t B = (uint16_t)int_B;
+  readout_data.caen_readout_channel = (uint8_t)int_tube;
+  readout_data.caen_readout_a = (uint16_t)int_A;
+  readout_data.caen_readout_b = (uint16_t)int_B;
   if (verbose > 2)
-    printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, TUBE, A, B, double_tof, event_count);
+    printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, readout_data.caen_readout_channel, readout_data.caen_readout_a, readout_data.caen_readout_b, double_tof, event_count);
   for (int i=0; i<1 /*event_count*/; ++i){
     // Send the event to the broadcaster to be accumulated and broadcast
-    if (broadcast) readout_add(readout_ptr, RING, FEN, double_tof, TUBE, A, B);
+    if (broadcast) readout_add(readout_ptr, RING, FEN, double_tof, (const void *)(&readout_data));
   }
 }
 %}

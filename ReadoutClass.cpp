@@ -27,6 +27,41 @@
 #define SEND_FLAGS 0
 #endif
 
+DetectorType detectorType_from_int(int type){
+  switch(type){
+    case 0x00: return Reserved;
+    case 0x10: return TTLMonitor;
+    case 0x30: return LOKI;
+    case 0x34: return BIFROST;
+    case 0x38: return MIRACLES;
+    case 0x40: return CSPEC;
+    case 0x44: return NMX;
+    case 0x48: return FREIA;
+    case 0x50: return TREX;
+    case 0x60: return DREAM;
+    case 0x64: return MAGIC;
+    default: throw std::runtime_error("Undefined DetectorType");
+  }
+}
+ReadoutType readoutType_from_detectorType(DetectorType type){
+  switch(type){
+    case TTLMonitor: return ReadoutType::TTLMonitor;
+    case LOKI:
+    case BIFROST:
+    case MIRACLES:
+    case CSPEC: return ReadoutType::CAEN;
+    case NMX:
+    case FREIA:
+    case TREX: return ReadoutType::VMM3;
+    case DREAM: return ReadoutType::DREAM;
+    case MAGIC: return ReadoutType::MAGIC;
+    default: throw std::runtime_error("No ReadoutType for provided DetectorType");
+  }
+}
+ReadoutType readoutType_from_int(int int_type) {
+  return readoutType_from_detectorType(detectorType_from_int(int_type));
+}
+
 void Readout::setPulseTime(uint32_t PHI, uint32_t PLO, uint32_t PPHI, uint32_t PPLO) {
   phi = PHI;
   plo = PLO;
@@ -99,15 +134,19 @@ void Readout::sockOpen(const std::string& addr, int remote_port) {
   hp = (PacketHeaderV0 *)&buffer[0];
 }
 
-int Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, uint8_t Tube, uint16_t AmplA, uint16_t AmplB) {
+void Readout::check_size_and_send() {
   if (DataSize >= MaxDataSize) {
     send();
     newPacket();
   }
+}
+
+void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const CAEN_readout_t *data) {
+  check_size_and_send();
   if (verbosity > 2){
-    std::cout << "Add to the packet " << unsigned(Ring) << " " << unsigned(FEN) << " ";
-    std::cout << TimeHigh << " " << TimeLow << " " << unsigned(Tube) << " " << AmplA;
-    std::cout << " " << AmplB << std::endl;
+    std::cout << "Add to the packet Ring=" << unsigned(Ring) << " FEN=" << unsigned(FEN);
+    std::cout << " TimeHigh=" << TimeHigh << " TimeLow=" << TimeLow << " Tube=" << unsigned(data->caen_readout_channel);
+    std::cout << " AmplA=" << data->caen_readout_a << " AmplB=" << data->caen_readout_b << std::endl;
   }
   auto *dp = (struct CaenData *)(buffer + DataSize);
   dp->Ring = Ring;
@@ -115,13 +154,76 @@ int Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t T
   dp->Length = sizeof(struct CaenData);
   dp->TimeHigh = TimeHigh;
   dp->TimeLow = TimeLow;
-  dp->Tube = Tube;
-  dp->AmplA = AmplA;
-  dp->AmplB = AmplB;
-
+  dp->Tube = data->caen_readout_channel;
+  dp->AmplA = data->caen_readout_a;
+  dp->AmplB = data->caen_readout_b;
+  dp->AmplC = data->caen_readout_c;
+  dp->AmplD = data->caen_readout_d;
   DataSize += dp->Length;
   hp->TotalLength = DataSize;
-  return 0;
+}
+void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const TTLMonitor_readout_t *data) {
+  if (verbosity > 2){
+    std::cout << "Add to the packet Ring=" << unsigned(Ring) << " FEN=" << unsigned(FEN);
+    std::cout << " TimeHigh=" << TimeHigh << " TimeLow=" << TimeLow << " Pos=" << unsigned(data->ttlmonitor_readout_pos);
+    std::cout << " Channel=" << unsigned(data->ttlmonitor_readout_channel) << " ADC=" << data->ttlmonitor_readout_adc << std::endl;
+  }
+  check_size_and_send();
+  auto *dp = (struct TTLMonitorData *)(buffer + DataSize);
+  dp->Ring = Ring;
+  dp->FEN = FEN;
+  dp->Length = sizeof(struct TTLMonitorData);
+  dp->TimeHigh = TimeHigh;
+  dp->TimeLow = TimeLow;
+  dp->Pos = data->ttlmonitor_readout_pos;
+  dp->Channel = data->ttlmonitor_readout_channel;
+  dp->ADC = data->ttlmonitor_readout_adc;
+  DataSize += dp->Length;
+  hp->TotalLength = DataSize;
+}
+
+
+void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const DREAM_readout_t *data) {
+  check_size_and_send();
+  auto *dp = (struct DreamData *)(buffer + DataSize);
+  dp->Ring = Ring;
+  dp->FEN = FEN;
+  dp->Length = sizeof(struct DreamData);
+  dp->TimeHigh = TimeHigh;
+  dp->TimeLow = TimeLow;
+  dp->OM = data->dream_readout_om;
+  dp->Cathode = data->dream_readout_cathode;
+  dp->Anode = data->dream_readout_anode;
+  DataSize += dp->Length;
+  hp->TotalLength = DataSize;
+}
+void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const VMM3_readout_t *data) {
+  check_size_and_send();
+  auto *dp = (struct VMM3Data *)(buffer + DataSize);
+  dp->Ring = Ring;
+  dp->FEN = FEN;
+  dp->Length = sizeof(struct VMM3Data);
+  dp->TimeHigh = TimeHigh;
+  dp->TimeLow = TimeLow;
+  dp->BC = data->vmm3_readout_bc;
+  dp->OTADC = data->vmm3_readout_otadc;
+  dp->GEO = data->vmm3_readout_geo;
+  dp->TDC = data->vmm3_readout_tdc;
+  dp->VMM = data->vmm3_readout_vmm;
+  dp->Channel = data->vmm3_readout_channel;
+  DataSize += dp->Length;
+  hp->TotalLength = DataSize;
+}
+
+void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const void *data) {
+  auto type = readoutType_from_detectorType(Type);
+  switch (type) {
+    case ReadoutType::CAEN: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const CAEN_readout_t*>(data));
+    case ReadoutType::TTLMonitor: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const TTLMonitor_readout_t*>(data));
+    case ReadoutType::DREAM: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const DREAM_readout_t*>(data));
+    case ReadoutType::VMM3: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const VMM3_readout_t*>(data));
+    default: throw std::runtime_error("This readout data type not implemented yet!");
+  }
 }
 
 int Readout::send() {

@@ -56,4 +56,5 @@ configure_file( "${PROJECT_SOURCE_DIR}/cmake/readout-config.in" "${PROJECT_BINAR
 install( PROGRAMS "${PROJECT_BINARY_DIR}/readout-config" DESTINATION ${Readout_BINDIR} )
 
 # Copy the component file to the include directory too
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/Readout.comp" DESTINATION ${Readout_DATADIR})
+file(GLOB ALL_COMPONENTS "${CMAKE_CURRENT_SOURCE_DIR}/components/*.comp")
+install(FILES ${ALL_COMPONENTS} DESTINATION ${Readout_DATADIR})

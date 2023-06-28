@@ -8,24 +8,36 @@
 #pragma once
 
 #include "Structs.h"
+#include "Readout.h"
 #include <netinet/in.h>
 #include <netinet/ip.h> /* superset of previous */
 #include <string>
 #include <sys/socket.h>
 
 enum class Verbosity {silent, errors, warnings, info, details};
+enum DetectorType {Reserved = 0x00, TTLMonitor = 0x10, LOKI = 0x30, BIFROST = 0x34, MIRACLES = 0x38, CSPEC = 0x40,
+                   NMX = 0x44, FREIA = 0x48, TREX = 0x50, DREAM = 0x60, MAGIC = 0x64};
+enum class ReadoutType {TTLMonitor, CAEN, VMM3, DREAM, MAGIC};
+
+DetectorType detectorType_from_int(int);
 
 class Readout {
 public:
   Readout(std::string IpAddress, int UDPPort, int TCPPort, int Type=0x34)
-      : ipaddr(IpAddress), port(UDPPort), tcp_port(TCPPort), Type(Type) {
+      : ipaddr(IpAddress), port(UDPPort), tcp_port(TCPPort), Type(detectorType_from_int(Type)) {
     sockOpen(ipaddr, port);
   }
 
+
+
   // Adds a readout to the transmission buffer.
   // If there is no room left, transmit and initialize a new packet
-  int addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow,
-                 uint8_t Tube, uint16_t AmplA, uint16_t AmplB);
+  void addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const void * data);
+  // Specializations for handled data types
+  void addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const CAEN_readout_t * data);
+  void addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const TTLMonitor_readout_t * data);
+  void addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const DREAM_readout_t * data);
+  void addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const VMM3_readout_t * data);
 
   // send the current data buffer
   int send();
@@ -54,6 +66,8 @@ public:
   int verbose(int v){verbosity = v; return verbosity;}
 
 private:
+  void check_size_and_send();
+
   // setup socket for transmission
   void sockOpen(const std::string& ipaddr, int remote_port);
 //  void commandOpen(std::string ipaddr, int port);
@@ -66,7 +80,7 @@ private:
 
   int SeqNum{0};
   int OutputQueue{0};
-  int Type; // 0x34 for BIFROST, 0x41 for He3CSPEC
+  DetectorType Type;
 
   // TX Buffer
   PacketHeaderV0 *hp;
