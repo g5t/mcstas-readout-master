@@ -46,7 +46,7 @@ SHARE
     return 0;
   }
   void delay() {
-    for (int i=0; i<300; ++i) sleep(0.1);
+    for (int i=0; i<30; ++i) sleep(1);
   }
   void throw_error(char* named, char* variable){
     printf("Readout_Master: %s: Particle variable %s inaccessible, exiting.\n", named, variable);
@@ -112,11 +112,11 @@ SHARE
     // specify the receiver port
     newargs[n_spaces + 2] = "-p";
     newargs[n_spaces + 3] = calloc(10, sizeof(char));
-    sprintf(newargs[n_spaces + 3], "%ld", port);
+    sprintf(newargs[n_spaces + 3], "%d", port);
     // specify the command port
     newargs[n_spaces + 4] = "-m";
     newargs[n_spaces + 5] = calloc(10, sizeof(char));
-    sprintf(newargs[n_spaces + 5], "%ld", command_port);
+    sprintf(newargs[n_spaces + 5], "%d", command_port);
 
     if (output) {
       newargs[n_spaces + 6] = "--dumptofile";
