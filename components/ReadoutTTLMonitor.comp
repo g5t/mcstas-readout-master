@@ -20,7 +20,8 @@ int noisy=0,
 noise_level=0.1,
 string event_mode = "p",
 int verbose=0, // -1: silent, 0: errors, 1: warnings, 2: info, 3: details
-int ess_type=16 // TTLMonitor should always be 0x10 == 16
+int ess_type=16, // TTLMonitor should always be 0x10 == 16
+double efficiency=1
 )
 OUTPUT PARAMETERS ()
 DEPENDENCY "-Wl,-rpath,CMD(readout-config --show libdir) -LCMD(readout-config --show libdir) -lReadout -ICMD(readout-config --show includedir)"
@@ -107,7 +108,7 @@ if (p_or_pp && !strcmp(event_mode, "pp")) readout_ttlmonitor_error(NAME_CURRENT_
 
 TRACE
 %{
-double pp = particle_getvar(_particle, "p", 0) * sqrt((double)(mcget_ncount()));
+double pp = particle_getvar(_particle, "p", 0) * sqrt((double)(mcget_ncount())) * efficiency;
 if (p_or_pp) pp *= pp;
 
 int event_count = readout_ttlmonitor_rand_poisson(pp);
