@@ -108,8 +108,9 @@ if (p_or_pp && !strcmp(event_mode, "pp")) readout_ttlmonitor_error(NAME_CURRENT_
 
 TRACE
 %{
-double pp = particle_getvar(_particle, "p", 0) * sqrt((double)(mcget_ncount())) * efficiency;
+double pp = particle_getvar(_particle, "p", 0) * sqrt((double)(mcget_ncount()));
 if (p_or_pp) pp *= pp;
+pp *= efficiency;
 
 int event_count = readout_ttlmonitor_rand_poisson(pp);
 
