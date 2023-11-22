@@ -45,7 +45,7 @@ SHARE
     if (stat(buffer, &sts) == -1 && errno == ENOENT) return 1;
     return 0;
   }
-  void delay() {
+  void delay(void) {
     for (int i=0; i<30; ++i) sleep(1);
   }
   void throw_error(char* named, char* variable){
@@ -64,16 +64,16 @@ SHARE
     while ((prod *= rand01()) > criteria) ++count;
     return count;
   }
-  int spawn_broadcaster(const char * dirname, const char * filename, const char * compname,
+  int spawn_broadcaster(const char * bc_dirname, const char * filename, const char * compname,
                         const int output, const char * receiver, const char * options,
                         const int port, const int command_port, const int verbose){
     // no-ip --> 127.0.0.1 above
     // For localhost/127.0.0.1 we should start the server
     char outfile[PATH_MAX];
     getcwd(outfile, sizeof(outfile));
-    if (dirname && dirname[0] != '\0'){
+    if (bc_dirname && bc_dirname[0] != '\0'){
       strcat(outfile, "/");
-      strcat(outfile, dirname);
+      strcat(outfile, bc_dirname);
     }
     strcat(outfile, "/");
     if (filename && filename[0] != '\0'){
