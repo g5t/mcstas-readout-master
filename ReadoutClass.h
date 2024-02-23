@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 #include <netinet/ip.h> /* superset of previous */
 #include <string>
+#include <utility>
 #include <sys/socket.h>
 
 enum class Verbosity {silent, errors, warnings, info, details};
@@ -23,8 +24,8 @@ DetectorType detectorType_from_int(int);
 
 class Readout {
 public:
-  Readout(std::string IpAddress, int UDPPort, int TCPPort, int Type=0x34)
-      : ipaddr(IpAddress), port(UDPPort), tcp_port(TCPPort), Type(detectorType_from_int(Type)) {
+  Readout(std::string IpAddress, const int UDPPort, const int TCPPort, const int Type=0x34)
+  : ipaddr(std::move(IpAddress)), port(UDPPort), tcp_port(TCPPort), Type(detectorType_from_int(Type)) {
     sockOpen(ipaddr, port);
   }
 
@@ -49,10 +50,10 @@ public:
   void newPacket();
 
   // Tell the (remote) device to shut down
-  int command_shutdown();
+  int command_shutdown() const;
 
   // Set verbosity via enum
-  int verbose(Verbosity v){
+  int verbose(const Verbosity v){
     switch (v) {
       case Verbosity::details: verbosity=3; break;
       case Verbosity::info: verbosity=2; break;
@@ -63,13 +64,13 @@ public:
     }
     return verbosity;
   }
-  int verbose(int v){verbosity = v; return verbosity;}
+  int verbose(const int v){verbosity = v; return verbosity;}
 
 private:
   void check_size_and_send();
 
   // setup socket for transmission
-  void sockOpen(const std::string& ipaddr, int remote_port);
+  void sockOpen(const std::string& addr, int remote_port);
 //  void commandOpen(std::string ipaddr, int port);
 
   // Packet header
@@ -83,16 +84,16 @@ private:
   DetectorType Type;
 
   // TX Buffer
-  PacketHeaderV0 *hp;
-  char buffer[9000];
+  PacketHeaderV0 *hp{};
+  char buffer[9000]{};
   const int MaxDataSize{8950};
   int DataSize{0};
   // IP and port number
   std::string ipaddr;
   int port{9000};
   // BSD Socket specifics
-  int fd; // socket file descriptor
-  struct sockaddr_in remoteSockAddr;
+  int fd{}; // socket file descriptor
+  struct sockaddr_in remoteSockAddr{};
 
   int tcp_port{8888};
 

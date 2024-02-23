@@ -86,14 +86,13 @@ extern "C" {
 //    obj->addReadout(ring, fen, tof.high(), tof.low(), tube, amplitude_a, amplitude_b);
 //  }
 
-  void readout_add(readout_t * r_ptr, uint8_t ring, uint8_t fen, double time_of_flight, const void * data){
+  void readout_add(readout_t * r_ptr, const uint8_t ring, const uint8_t fen, const double time_of_flight, const void * data){
     readout_setPulseTime(r_ptr);
-    Readout * obj;
     if (r_ptr == nullptr) return;
-    obj = static_cast<Readout *>(r_ptr->obj);
+    const auto obj = static_cast<Readout *>(r_ptr->obj);
     auto tof = efu_time(time_of_flight);
-    // the real data should have tof modulo the source period
-    tof = tof + static_cast<efu_time*>(r_ptr->time);
+    // TODO the real data should have tof modulo the source period
+    tof = tof + static_cast<efu_time*>(r_ptr->time); // this is the provided tof plus the current pulse time
     obj->addReadout(ring, fen, tof.high(), tof.low(), data);
   }
 

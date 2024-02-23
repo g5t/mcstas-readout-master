@@ -1,7 +1,8 @@
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.6.0...3.27.7 FATAL_ERROR)
 project(Readout VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_MACOSX_RPATH OFF)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 include(GNUInstallDirs)
 set(Readout_BINDIR "${CMAKE_INSTALL_BINDIR}")  # e.g. <prefix>/bin
@@ -58,3 +59,13 @@ install( PROGRAMS "${PROJECT_BINARY_DIR}/readout-config" DESTINATION ${Readout_B
 # Copy the component file to the include directory too
 file(GLOB ALL_COMPONENTS "${CMAKE_CURRENT_SOURCE_DIR}/components/*.comp")
 install(FILES ${ALL_COMPONENTS} DESTINATION ${Readout_DATADIR})
+
+
+include(fetcher)
+git_fetch(doctest 2.4.11 https://github.com/doctest/doctest)
+
+# find_package(doctest REQUIRED doctest_SOURCE_DIR)
+# Make test executable
+add_executable(tests main.cpp)
+target_compile_features(tests PRIVATE cxx_std_17)
+target_link_libraries(tests PRIVATE doctest)

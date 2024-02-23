@@ -27,7 +27,7 @@
 #define SEND_FLAGS 0
 #endif
 
-DetectorType detectorType_from_int(int type){
+DetectorType detectorType_from_int(const int type){
   switch(type){
     case 0x00: return Reserved;
     case 0x10: return TTLMonitor;
@@ -43,7 +43,7 @@ DetectorType detectorType_from_int(int type){
     default: throw std::runtime_error("Undefined DetectorType");
   }
 }
-ReadoutType readoutType_from_detectorType(DetectorType type){
+ReadoutType readoutType_from_detectorType(const DetectorType type){
   switch(type){
     case TTLMonitor: return ReadoutType::TTLMonitor;
     case LOKI:
@@ -58,11 +58,11 @@ ReadoutType readoutType_from_detectorType(DetectorType type){
     default: throw std::runtime_error("No ReadoutType for provided DetectorType");
   }
 }
-ReadoutType readoutType_from_int(int int_type) {
+ReadoutType readoutType_from_int(const int int_type) {
   return readoutType_from_detectorType(detectorType_from_int(int_type));
 }
 
-void Readout::setPulseTime(uint32_t PHI, uint32_t PLO, uint32_t PPHI, uint32_t PPLO) {
+void Readout::setPulseTime(const uint32_t PHI, const uint32_t PLO, const uint32_t PPHI, const uint32_t PPLO) {
   phi = PHI;
   plo = PLO;
   pphi = PPHI;
@@ -85,7 +85,7 @@ void Readout::newPacket() {
   DataSize = sizeof(struct PacketHeaderV0);
 }
 
-static int hostname_to_ip(const char * hostname, char * ip, int verbosity){
+static int hostname_to_ip(const char * hostname, char * ip, const int verbosity){
   struct addrinfo *server_info, hints{};
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
@@ -97,7 +97,7 @@ static int hostname_to_ip(const char * hostname, char * ip, int verbosity){
   }
   rv = 1;
   for (struct addrinfo *p=server_info; p != nullptr; p = p->ai_next){
-    auto h = (struct sockaddr_in *) p->ai_addr;
+    const auto h = (struct sockaddr_in *) p->ai_addr;
     if (h->sin_addr.s_addr) {
       strcpy(ip, inet_ntoa(h->sin_addr));
       rv = 0;
@@ -107,7 +107,7 @@ static int hostname_to_ip(const char * hostname, char * ip, int verbosity){
   return rv;
 }
 
-void Readout::sockOpen(const std::string& addr, int remote_port) {
+void Readout::sockOpen(const std::string& addr, const int remote_port) {
   fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (fd < 0) {
     throw std::runtime_error("socket() failed");
@@ -125,7 +125,7 @@ void Readout::sockOpen(const std::string& addr, int remote_port) {
     throw std::runtime_error("sockOpen() failed due to 0.0.0.0 IP address");
   }
 
-  int ret = inet_aton(ip, &remoteSockAddr.sin_addr);
+  const int ret = inet_aton(ip, &remoteSockAddr.sin_addr);
   if (ret == 0) {
     if (verbosity > -1) printf("sockOpen(): invalid ip address %s", ip);
     throw std::runtime_error("sockOpen() failed");
@@ -141,11 +141,11 @@ void Readout::check_size_and_send() {
   }
 }
 
-void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const CAEN_readout_t *data) {
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const CAEN_readout_t *data) {
   check_size_and_send();
   if (verbosity > 2){
-    std::cout << "Add to the packet Ring=" << unsigned(Ring) << " FEN=" << unsigned(FEN);
-    std::cout << " TimeHigh=" << TimeHigh << " TimeLow=" << TimeLow << " Tube=" << unsigned(data->caen_readout_channel);
+    std::cout << "Add to the packet Ring=" << static_cast<unsigned>(Ring) << " FEN=" << static_cast<unsigned>(FEN);
+    std::cout << " TimeHigh=" << TimeHigh << " TimeLow=" << TimeLow << " Tube=" << static_cast<unsigned>(data->caen_readout_channel);
     std::cout << " AmplA=" << data->caen_readout_a << " AmplB=" << data->caen_readout_b << std::endl;
   }
   auto *dp = (struct CaenData *)(buffer + DataSize);
@@ -162,11 +162,11 @@ void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t 
   DataSize += dp->Length;
   hp->TotalLength = DataSize;
 }
-void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const TTLMonitor_readout_t *data) {
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const TTLMonitor_readout_t *data) {
   if (verbosity > 2){
-    std::cout << "Add to the packet Ring=" << unsigned(Ring) << " FEN=" << unsigned(FEN);
-    std::cout << " TimeHigh=" << TimeHigh << " TimeLow=" << TimeLow << " Pos=" << unsigned(data->ttlmonitor_readout_pos);
-    std::cout << " Channel=" << unsigned(data->ttlmonitor_readout_channel) << " ADC=" << data->ttlmonitor_readout_adc << std::endl;
+    std::cout << "Add to the packet Ring=" << static_cast<unsigned>(Ring) << " FEN=" << static_cast<unsigned>(FEN);
+    std::cout << " TimeHigh=" << TimeHigh << " TimeLow=" << TimeLow << " Pos=" << static_cast<unsigned>(data->ttlmonitor_readout_pos);
+    std::cout << " Channel=" << static_cast<unsigned>(data->ttlmonitor_readout_channel) << " ADC=" << data->ttlmonitor_readout_adc << std::endl;
   }
   check_size_and_send();
   auto *dp = (struct TTLMonitorData *)(buffer + DataSize);
@@ -183,7 +183,7 @@ void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t 
 }
 
 
-void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const DREAM_readout_t *data) {
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const DREAM_readout_t *data) {
   check_size_and_send();
   auto *dp = (struct DreamData *)(buffer + DataSize);
   dp->Ring = Ring;
@@ -197,7 +197,7 @@ void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t 
   DataSize += dp->Length;
   hp->TotalLength = DataSize;
 }
-void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const VMM3_readout_t *data) {
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const VMM3_readout_t *data) {
   check_size_and_send();
   auto *dp = (struct VMM3Data *)(buffer + DataSize);
   dp->Ring = Ring;
@@ -215,8 +215,8 @@ void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t 
   hp->TotalLength = DataSize;
 }
 
-void Readout::addReadout(uint8_t Ring, uint8_t FEN, uint32_t TimeHigh, uint32_t TimeLow, const void *data) {
-  auto type = readoutType_from_detectorType(Type);
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const void *data) {
+  const auto type = readoutType_from_detectorType(Type);
   switch (type) {
     case ReadoutType::CAEN: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const CAEN_readout_t*>(data));
     case ReadoutType::TTLMonitor: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const TTLMonitor_readout_t*>(data));
@@ -244,7 +244,7 @@ int Readout::send() {
 }
 
 int check_and_send_tcp(const char* addr, const char* port, const char* msg, const int verbosity){
-  int sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  const int sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sockfd < 0) {
     if (verbosity > -1) std::cout << "failed to open socket for command" << std::endl;
     return -1;
@@ -252,7 +252,7 @@ int check_and_send_tcp(const char* addr, const char* port, const char* msg, cons
   struct addrinfo hints{}, *results, *result;
   memset(&hints, 0, sizeof(hints));
 
-  int s = getaddrinfo(addr, port, &hints, &results);
+  const int s = getaddrinfo(addr, port, &hints, &results);
   if (s != 0){
     if (verbosity > -1) std::cout << "getaddrinfo: error for " << addr << std::endl;
     return -2;
@@ -285,7 +285,7 @@ int check_and_send_tcp(const char* addr, const char* port, const char* msg, cons
   return 1;
 }
 
-int Readout::command_shutdown() {
+int Readout::command_shutdown() const {
   char tcp[10];
   sprintf(tcp, "%d", tcp_port);
   int ok = check_and_send_tcp(ipaddr.c_str(), tcp, "EXIT\n", verbosity);
