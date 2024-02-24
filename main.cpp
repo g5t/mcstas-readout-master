@@ -111,6 +111,11 @@ TEST_CASE("readout handles time-of-flight correctly") {
         CHECK(prev == initial_prev + *period * 2);
         auto event = efu_time(obj->lastEventTime());
         CHECK(event - last == efu_time(tof_low));
+        // this behaviour is bad for emulating real-data
+        // in a real system all times _must_ follow the source period
+        // there is no way for an event time to be more than 1 period
+        // after the most recent pulse.
+        CHECK(event - last > *period);
     }
     readout_add(readout, 0u, 0u, tof_high, &data);
     {
@@ -120,6 +125,11 @@ TEST_CASE("readout handles time-of-flight correctly") {
         CHECK(prev == initial_prev + *period * 2);
         auto event = efu_time(obj->lastEventTime());
         CHECK(event - last == efu_time(tof_high));
+        // this behaviour is bad for emulating real-data
+        // in a real system all times _must_ follow the source period
+        // there is no way for an event time to be more than 1 period
+        // after the most recent pulse.
+        CHECK(event - last > *period * 3);
     }
 
 
