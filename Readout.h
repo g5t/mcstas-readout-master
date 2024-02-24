@@ -45,7 +45,7 @@ typedef struct VMM3_readout VMM3_readout_t;
 
   // Create a new Readout object
   // type == 0x34 for BIFROST, 0x41 for He3CSPEC
-  readout_t * readout_create(char* address, int port, int command_port, double source_frequency, int type);
+  readout_t * readout_create(const char* address, int port, int command_port, double source_frequency, int type);
 
   // Destroy an existing Readout object
   void readout_destroy(readout_t* r_ptr);

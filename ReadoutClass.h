@@ -46,6 +46,11 @@ public:
   // Update the pulse and previous pulse times
   void setPulseTime(uint32_t PHI, uint32_t PLO, uint32_t PPHI, uint32_t PPLO);
 
+  // Query the current pulse and previous pulse times
+  std::pair<uint32_t, uint32_t> lastPulseTime() const;
+  std::pair<uint32_t, uint32_t> prevPulseTime() const;
+  std::pair<uint32_t, uint32_t> lastEventTime() const;
+
   // Initialize a new packet with no readouts
   void newPacket();
 
@@ -78,6 +83,9 @@ private:
   uint32_t plo{0};
   uint32_t pphi{0};
   uint32_t pplo{0};
+
+  uint32_t lasthi{0};
+  uint32_t lastlo{0};
 
   int SeqNum{0};
   int OutputQueue{0};

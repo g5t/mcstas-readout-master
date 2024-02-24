@@ -10,43 +10,22 @@
 #include <stdexcept>
 #include <utility>
 
+static const uint64_t ticks = 88052499;
+
 class efu_time {
 protected:
   uint32_t _h;
   uint32_t _l;
 public:
-  static constexpr uint64_t ticks = 88052499;
-
-  /** \brief A time equivalent to that used in the ESS Event-Formation-Unit
-   *
-   * \param high seconds since the UNIX epoch, 1970-01-01 00:00
-   * \param low number of clock ticks in a 88.052499 MHz oscillator
-   * */
-  efu_time(const uint32_t high, const uint32_t low): _h(high), _l(low) {
-    if (_l > ticks) {
-      _h += _l / ticks;
-      _l %= ticks;
-    }
-  };
-
-  /**
-   * \brief Conversion from floating point time representation
-   * \param time seconds since the UNIX epoch
-   * */
-  explicit efu_time(const double time)
-  : _h(static_cast<uint32_t>(time)), _l(static_cast<uint32_t>(std::fmod(time, 1.0) * ticks)) {}
-
-  /**
-   * \brief Use the system clock to construct an EFU consistent time stamp
-   */
+  efu_time(uint32_t h, uint32_t l): _h(h), _l(l) {};
+  explicit efu_time(double t): _h(static_cast<uint32_t>(t)), _l(static_cast<uint32_t>(std::fmod(t, 1.0) * ticks)){}
   efu_time(): _h(0), _l(0) {
-    using std::chrono::duration_cast, std::chrono::nanoseconds, std::chrono::system_clock;
-    constexpr uint64_t nps = 1000000000u; // nanoseconds per second
-    const auto ns = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
-    const auto seconds = ns / nps;
-    const auto tick_count = ((ns % nps) * ticks) / nps;
-    _h = static_cast<uint32_t>(seconds);
-    _l = static_cast<uint32_t>(tick_count);
+    uint64_t nps = 1000000000u;
+    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto s = ns / nps;
+    auto t = (static_cast<uint64_t>(ns % nps) * ticks) / nps;
+    _h = static_cast<uint32_t>(s);
+    _l = static_cast<uint32_t>(t);
   }
 
   uint32_t high() const {return _h;}
@@ -71,9 +50,13 @@ public:
   }
 
   efu_time operator+(const efu_time & other) const {
-    // the constructor ensures l is always less than ticks
-    // and 2*ticks is _well_ within the dynamic range of uint32_t
-    return {_h + other._h, _l + other._l};
+    uint32_t h = _h + other._h;
+    auto r = static_cast<uint64_t>(_l) + static_cast<uint64_t>(other._l);
+    if (r > ticks) {
+      h += static_cast<uint32_t>(r / ticks);
+      r = r % ticks;
+    }
+    return {h, static_cast<uint32_t>(r)};
   }
 
   efu_time operator+(const efu_time * other) const {

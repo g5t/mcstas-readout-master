@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <string>
 #include <algorithm>
+#include <tuple>
 
 /// \brief Use MSG_SIGNAL on Linuxes
 #ifdef MSG_NOSIGNAL
@@ -67,6 +68,16 @@ void Readout::setPulseTime(const uint32_t PHI, const uint32_t PLO, const uint32_
   plo = PLO;
   pphi = PPHI;
   pplo = PPLO;
+}
+
+std::pair<uint32_t, uint32_t> Readout::lastPulseTime() const {
+  return std::make_pair(phi, plo);
+}
+std::pair<uint32_t, uint32_t> Readout::prevPulseTime() const {
+  return std::make_pair(pphi, pplo);
+}
+std::pair<uint32_t, uint32_t> Readout::lastEventTime() const {
+  return std::make_pair(lasthi, lastlo);
 }
 
 void Readout::newPacket() {
@@ -216,6 +227,8 @@ void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t T
 }
 
 void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const void *data) {
+  lasthi = TimeHigh;
+  lastlo = TimeLow;
   const auto type = readoutType_from_detectorType(Type);
   switch (type) {
     case ReadoutType::CAEN: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const CAEN_readout_t*>(data));

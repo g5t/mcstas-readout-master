@@ -66,6 +66,6 @@ git_fetch(doctest 2.4.11 https://github.com/doctest/doctest)
 
 # find_package(doctest REQUIRED doctest_SOURCE_DIR)
 # Make test executable
-add_executable(tests main.cpp)
+add_executable(tests main.cpp Readout.cpp ReadoutClass.cpp)
 target_compile_features(tests PRIVATE cxx_std_17)
 target_link_libraries(tests PRIVATE doctest)

@@ -13,27 +13,24 @@ extern "C" {
     void *time;
   };
 
-  void readout_setFirstPulseTime(readout_t * r_ptr)
+  void readout_setFirstPulseTime(const readout_t * r_ptr)
   {
-    efu_time * rep, * pulse;
+    // efu_time * rep, * pulse;
     if (r_ptr == nullptr) return;
-    rep = static_cast<efu_time*>(r_ptr->rep);
-    pulse = static_cast<efu_time*>(r_ptr->time);
-    auto prev = *pulse - rep;
-    auto obj = static_cast<Readout*>(r_ptr->obj);
+    const auto rep = static_cast<efu_time*>(r_ptr->rep);
+    const auto pulse = static_cast<efu_time*>(r_ptr->time);
+    const auto prev = *pulse - rep;
+    const auto obj = static_cast<Readout*>(r_ptr->obj);
     obj->setPulseTime(pulse->high(), pulse->low(), prev.high(), prev.low());
     obj->newPacket();
   }
 
   // Create a new Readout object
-  readout_t * readout_create(char* address, int port, int command_port, double source_frequency, int type){
-    readout_t* r_ptr;
-//    Readout *obj;
-//    efu_time *rep, *time;
-
-    std::string string_address(address);
-
-    r_ptr = (typeof(r_ptr))malloc(sizeof(*r_ptr));
+  readout_t * readout_create(const char* address, const int port, const int command_port, const double source_frequency, int type){
+    const std::string string_address(address);
+    const auto r_ptr = static_cast<readout_t *>(malloc(sizeof(readout_t)));
+    // readout_t* r_ptr;
+    // r_ptr = (typeof(r_ptr))malloc(sizeof(*r_ptr));
     r_ptr->obj = new Readout(string_address, port, command_port, type);
     r_ptr->rep = new efu_time(1/source_frequency);
     r_ptr->time = new efu_time();
@@ -108,18 +105,18 @@ extern "C" {
   void readout_setPulseTime(readout_t* r_ptr)
   {
     if (r_ptr == nullptr) return;
-    auto obj = static_cast<Readout*>(r_ptr->obj);
-    auto prev = static_cast<efu_time*>(r_ptr->time);
-    auto rep = static_cast<efu_time*>(r_ptr->rep);
-    auto now = new efu_time();
+    const auto obj = static_cast<Readout*>(r_ptr->obj);
+    const auto prev = static_cast<efu_time*>(r_ptr->time);
+    const auto rep = static_cast<efu_time*>(r_ptr->rep);
+    const auto now = new efu_time();
     if ((*now - prev) >= rep){
-//      std::cout << "Send out packet and update time! From " << prev << " to " << now << std::endl;
+      std::cout << "Send out packet and update time! From " << prev << " to " << now << std::endl;
       *now = *prev + *rep * ((*now - prev) / *rep);
       // The ESS Caen EFUs require (now - prev) <= 5 * rep; so we should fake it
       if ((*now - prev) > (*rep * 5u)){
         *prev = *now - *rep;
       }
-//      std::cout << "Modified updated time " << now << std::endl;
+      std::cout << "Modified updated time " << now << std::endl;
       obj->send();
       obj->setPulseTime(now->high(), now->low(), prev->high(), prev->low());
       obj->newPacket();
