@@ -7,11 +7,17 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <windows.h>
+#else
 #include <netinet/in.h>
 #include <netinet/ip.h> /* superset of previous */
+#include <sys/socket.h>
+#endif
+
 #include <string>
 #include <utility>
-#include <sys/socket.h>
 #include <optional>
 
 #include "Structs.h"
