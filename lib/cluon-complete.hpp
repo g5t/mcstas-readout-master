@@ -17,6 +17,8 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#pragma once
+
 #ifndef LINB_ANY_HPP
 #define LINB_ANY_HPP
 //#pragma once
@@ -14032,7 +14034,8 @@ inline void ToLCMVisitor::calculateHash(const std::string &s) noexcept {
 
     #include <cstdint>
     #include <cstring>
-    uint32_t __ntohl(const uint32_t v) {
+    template<class T>
+    uint32_t __ntohl(const T v) {
         uint8_t d[4] = {};
         std::memmove(&d, &v, sizeof(d));
 
