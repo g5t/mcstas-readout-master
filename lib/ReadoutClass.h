@@ -7,14 +7,7 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <windows.h>
-#else
-#include <netinet/in.h>
-#include <netinet/ip.h> /* superset of previous */
-#include <sys/socket.h>
-#endif
+#include "cluon-complete.hpp"
 
 #include <string>
 #include <utility>
@@ -26,6 +19,7 @@
 #include "hdf_interface.h"
 #include "version.hpp"
 #include "efu_time.h"
+
 
 class Readout {
 public:
@@ -41,9 +35,11 @@ public:
      port(UDPPort),
      tcp_port(TCPPort),
      period(p),
-     time(t)
+     time(t),
+     sender{ipaddr, static_cast<uint16_t>(UDPPort)}
   {
-    sockOpen(ipaddr, port);
+//    sockOpen(ipaddr, port);
+    hp = (PacketHeaderV0*)&buffer[0];
     auto prev = time - period;
     setPulseTime(time.high(), time.low(), prev.high(), prev.low());
     newPacket();
@@ -66,7 +62,7 @@ public:
   void saveReadout(uint8_t Ring, uint8_t FEN, double tof, double weight, const void * data);
   template<class T> void saveReadout(T data){
     if (file.has_value() and dataset.has_value()) {
-      auto ds = dataset.value();
+      auto & ds = dataset.value();
       // the dataset should be 1-D ... hopefully that's true
       auto pos = ds.getDimensions().back();
       auto size = pos + 1;
@@ -160,10 +156,6 @@ private:
 
   void check_size_and_send();
 
-  // setup socket for transmission
-  void sockOpen(const std::string& addr, int remote_port);
-//  void commandOpen(std::string ipaddr, int port);
-
   // Packet header
   uint32_t phi{0}; // pulse and prev pulse high and low
   uint32_t plo{0};
@@ -185,16 +177,12 @@ private:
   // IP and port number
   std::string ipaddr;
   int port{9000};
-  // BSD Socket specifics
-  int fd{}; // socket file descriptor
-  struct sockaddr_in remoteSockAddr{};
-
   int tcp_port{8888};
-
   int verbosity{0};
 
   std::optional<HighFive::File> file{std::nullopt};
   std::optional<HighFive::DataSet> dataset{std::nullopt};
   bool network{true};
   efu_time period, time;
+  cluon::UDPSender sender;
 };

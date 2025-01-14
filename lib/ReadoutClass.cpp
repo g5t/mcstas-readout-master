@@ -6,19 +6,11 @@
 ///
 //===----------------------------------------------------------------------===//
 #include "ReadoutClass.h"
-#include <arpa/inet.h>
+
 #include <cstring>
 #include <iostream>
-#include <netdb.h>
 #include <stdexcept>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <cstdio>
-#include <cstdlib>
-#include <unistd.h>
 #include <string>
-#include <algorithm>
 #include <tuple>
 
 /// \brief Use MSG_SIGNAL on Linuxes
@@ -60,55 +52,6 @@ void Readout::newPacket() {
   hp->PrevPulseHigh = pphi;
   hp->PrevPulseLow = pplo;
   DataSize = sizeof(struct PacketHeaderV0);
-}
-
-static int hostname_to_ip(const char * hostname, char * ip, const int verbosity){
-  struct addrinfo *server_info, hints{};
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_UNSPEC;
-  hints.ai_socktype = SOCK_STREAM;
-  int rv;
-  if ((rv = getaddrinfo(hostname, "http", &hints, &server_info)) != 0){
-    if (verbosity > -1) fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-    throw std::runtime_error("Hostname resolution failed");
-  }
-  rv = 1;
-  for (struct addrinfo *p=server_info; p != nullptr; p = p->ai_next){
-    const auto h = (struct sockaddr_in *) p->ai_addr;
-    if (h->sin_addr.s_addr) {
-      strcpy(ip, inet_ntoa(h->sin_addr));
-      rv = 0;
-    }
-  }
-  freeaddrinfo(server_info);
-  return rv;
-}
-
-void Readout::sockOpen(const std::string& addr, const int remote_port) {
-  fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  if (fd < 0) {
-    throw std::runtime_error("socket() failed");
-  }
-
-  // zero out the structures
-  std::memset((char *)&remoteSockAddr, 0, sizeof(remoteSockAddr));
-  remoteSockAddr.sin_family = AF_INET;
-  remoteSockAddr.sin_port = htons(remote_port);
-
-  // Attempt to resolve the address, in case it is a FQDN and not a string-encode IP address:
-  char ip[100];
-  if (hostname_to_ip(addr.c_str(), ip, verbosity)) {
-    if (verbosity > -1) printf("Failed to identify a non-zero IP address for %s\n", addr.c_str());
-    throw std::runtime_error("sockOpen() failed due to 0.0.0.0 IP address");
-  }
-
-  const int ret = inet_aton(ip, &remoteSockAddr.sin_addr);
-  if (ret == 0) {
-    if (verbosity > -1) printf("sockOpen(): invalid ip address %s", ip);
-    throw std::runtime_error("sockOpen() failed");
-  }
-
-  hp = (PacketHeaderV0 *)&buffer[0];
 }
 
 void Readout::check_size_and_send() {
@@ -235,63 +178,31 @@ int Readout::send() {
     if (verbosity > 1) std::cout << "No packet sent due to disabled network" << std::endl;
     return 0;
   }
-  char addr_buffer[INET_ADDRSTRLEN];
-  inet_ntop(AF_INET, &remoteSockAddr.sin_addr.s_addr, addr_buffer, sizeof(addr_buffer));
-  if (verbosity > 1) {
-    // convert the port number for 'network byte order' to host byte order
-    auto addr_port = ntohs(remoteSockAddr.sin_port);
-    std::cout << "Send the packet, to " << addr_buffer << ":" << addr_port << std::endl;
-  }
-
-  auto ret = static_cast<int>(sendto(
-      fd, (char *)buffer, DataSize, SEND_FLAGS, (struct sockaddr *)&remoteSockAddr, sizeof(remoteSockAddr)));
-  if (ret < 0 && verbosity > -1) {
-    printf("socket sendto() failed: returns %d\n", ret);
+  auto chr_ptr = reinterpret_cast<char *>(buffer);
+  auto [bytes, error_code] = sender.send(std::string(chr_ptr, chr_ptr + DataSize));
+  if (error_code < 0 && verbosity > -1){
+    std::cout << "Sending UDP data failed: returns " << error_code << "\n";
   }
   newPacket();
-  return ret;
+  return error_code;
 }
 
-int check_and_send_tcp(const char* addr, const char* port, const char* msg, const int verbosity){
-  const int sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (sockfd < 0) {
-    if (verbosity > -1) std::cout << "failed to open socket for command" << std::endl;
+int check_and_send_tcp(const std::string & addr, uint16_t port, std::string && message, const int verbosity){
+  cluon::TCPConnection connection(addr, port,
+     [](std::string &&data, auto &&ts) noexcept {
+       const auto timestamp(std::chrono::system_clock::to_time_t(ts));
+       std::cout << "Received " << data.size() << " bytes"
+                 << " at " << std::put_time(std::localtime(&timestamp), "%Y-%m-%d %X")
+                 << ", containing '" << data << "'." << std::endl;
+     },
+     [](){ std::cout << "Connection lost." << std::endl; });
+  auto len = static_cast<long>(message.size());
+  auto [bytes, error_code] = connection.send(std::move(message));
+  if (bytes != len && verbosity > -1){
+    std::cout << "Failed to send full message, sent " << bytes << " of " << len << " bytes\n";
     return -1;
   }
-  struct addrinfo hints{}, *results, *result;
-  memset(&hints, 0, sizeof(hints));
-
-  const int s = getaddrinfo(addr, port, &hints, &results);
-  if (s != 0){
-    if (verbosity > -1) std::cout << "getaddrinfo: error for " << addr << std::endl;
-    return -2;
-  }
-  int sfd;
-
-  for (result = results; result != nullptr; result = result->ai_next){
-    sfd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-    if (sfd == -1) continue;
-    if (connect(sfd, result->ai_addr, result->ai_addrlen) != -1) break;
-    close(sfd);
-  }
-  freeaddrinfo(results);
-  if (result == nullptr) return 0;
-
-  if (msg != nullptr) {
-    if (write(sfd, msg, strlen(msg)) != static_cast<ssize_t>(strlen(msg))) {
-      if (verbosity > -1) std::cout << "Failed to send (full) message " << msg << std::endl;
-      return -1;
-    }
-    char buf[500];
-    auto n = read(sfd, buf, 500);
-    if (n == -1) return 0;
-    if (verbosity > 1) {
-      std::string str(msg);
-      str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend());
-      std::cout << "Response to message '" << str << "': " << buf << std::endl;
-    }
-  }
-  return 1;
+  return error_code;
 }
 
 int Readout::command_shutdown() const {
@@ -299,9 +210,7 @@ int Readout::command_shutdown() const {
     if (verbosity > 1) std::cout << "No shutdown command sent due to disabled network" << std::endl;
     return 0;
   }
-  char tcp[10];
-  sprintf(tcp, "%d", tcp_port);
-  int ok = check_and_send_tcp(ipaddr.c_str(), tcp, "EXIT\n", verbosity);
+  int ok = check_and_send_tcp(ipaddr, tcp_port, "EXIT\n", verbosity);
   if (ok < 0) {
     if (verbosity > -1) std::cout << "Could not connect to " << ipaddr << ":" << tcp_port << std::endl;
     return -3;
@@ -314,7 +223,7 @@ int Readout::command_shutdown() const {
   // Let's now check that the EXIT command was executed
   ok *= 100; // try up to 100 times
   while (ok-- > 0){
-    ok = check_and_send_tcp(ipaddr.c_str(), tcp, nullptr, verbosity);
+    ok = check_and_send_tcp(ipaddr, tcp_port, nullptr, verbosity);
   }
   if (ok > 0 && verbosity > 0){
     // the server is still alive.
