@@ -14,7 +14,8 @@ checkGitSetup(READOUT) # defines/creates version.hpp; and library 'git_version'
 message(STATUS "Build readout v${READOUT_VERSION} (e.g., ${READOUT_SAFE_VERSION}) with type ${CMAKE_BUILD_TYPE}")
 
 if ( "x${VERSION}" STREQUAL "x" )
-    set(VERSION ${READOUT_SAFE_VERSION})
+    # set(VERSION ${READOUT_SAFE_VERSION})
+    set(VERSION "0.0.4")
 endif()
 
 project(mccode_readout LANGUAGES CXX VERSION "${VERSION}")
