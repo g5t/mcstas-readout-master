@@ -2,43 +2,42 @@
 #define READOUT_WRAPPER
 
 #ifdef __cplusplus
-#include <cstdint>
 extern "C" {
+#include <cstdint>
 #endif
+  struct CAEN_readout {
+    uint8_t channel;
+    uint16_t a;
+    uint16_t b;
+    uint16_t c;
+    uint16_t d;
+  };
 
-struct CAEN_readout {
-  uint8_t caen_readout_channel;
-  uint16_t caen_readout_a;
-  uint16_t caen_readout_b;
-  uint16_t caen_readout_c;
-  uint16_t caen_readout_d;
-};
-typedef struct CAEN_readout CAEN_readout_t;
+  struct TTLMonitor_readout {
+    uint8_t channel;
+    uint8_t pos;
+    uint16_t adc;
+  };
 
-struct TTLMonitor_readout {
-  uint8_t ttlmonitor_readout_channel;
-  uint8_t ttlmonitor_readout_pos;
-  uint16_t ttlmonitor_readout_adc;
-};
-typedef struct TTLMonitor_readout TTLMonitor_readout_t;
+  struct DREAM_readout {
+    uint8_t om;
+    uint8_t cathode;
+    uint8_t anode;
+  };
 
-struct DREAM_readout {
-  uint8_t dream_readout_om;
-  uint8_t dream_readout_cathode;
-  uint8_t dream_readout_anode;
-};
-typedef struct DREAM_readout DREAM_readout_t;
+  struct VMM3_readout {
+    uint16_t bc;
+    uint16_t otadc;
+    uint8_t geo;
+    uint8_t tdc;
+    uint8_t vmm;
+    uint8_t channel;
+  };
 
-struct VMM3_readout {
-  uint16_t vmm3_readout_bc;
-  uint16_t vmm3_readout_otadc;
-  uint8_t vmm3_readout_geo;
-  uint8_t vmm3_readout_tdc;
-  uint8_t vmm3_readout_vmm;
-  uint8_t vmm3_readout_channel;
-};
-typedef struct VMM3_readout VMM3_readout_t;
-
+  typedef struct CAEN_readout CAEN_readout_t;
+  typedef struct TTLMonitor_readout TTLMonitor_readout_t;
+  typedef struct DREAM_readout DREAM_readout_t;
+  typedef struct VMM3_readout VMM3_readout_t;
 
   struct readout;
   typedef struct readout readout_t;
@@ -52,12 +51,7 @@ typedef struct VMM3_readout VMM3_readout_t;
 
   // Add a readout value to the transmission buffer of the Readout object
   // Automatically transmits the packet if it is full.
-//  void readout_add(
-//      readout_t* r_ptr, uint8_t ring, uint8_t fen,
-//      double time_of_flight,
-//      uint8_t channel, uint16_t a, uint16_t b
-//  );
-  void readout_add(readout_t* r_ptr, uint8_t ring, uint8_t fen, double time_of_flight, const void* data);
+  void readout_add(readout_t* r_ptr, uint8_t ring, uint8_t fen, double time_of_flight, double weight, const void* data);
   // Send the current data buffer for the Readout object
   void readout_send(readout_t* r_ptr);
   // Update the pulse and previous pulse times for the Readout object
@@ -81,6 +75,13 @@ typedef struct VMM3_readout VMM3_readout_t;
   int readout_print_details(readout_t* r_ptr);
   // Set the verbose level from an integer -- look at ReadoutClass.h
   int readout_verbose(readout_t* r_ptr, int);
+
+  // Control file output for the Readout object
+  void readout_dump_to(readout_t * r_ptr, const char * filename);
+
+  // Allow disabling and enabling network communication (on by default)
+  void readout_disable_network(readout_t * r_ptr);
+  void readout_enable_network(readout_t * r_ptr);
 
 #ifdef __cplusplus
 }

@@ -28,40 +28,6 @@
 #define SEND_FLAGS 0
 #endif
 
-DetectorType detectorType_from_int(const int type){
-  switch(type){
-    case 0x00: return Reserved;
-    case 0x10: return TTLMonitor;
-    case 0x30: return LOKI;
-    case 0x34: return BIFROST;
-    case 0x38: return MIRACLES;
-    case 0x40: return CSPEC;
-    case 0x44: return NMX;
-    case 0x48: return FREIA;
-    case 0x50: return TREX;
-    case 0x60: return DREAM;
-    case 0x64: return MAGIC;
-    default: throw std::runtime_error("Undefined DetectorType");
-  }
-}
-ReadoutType readoutType_from_detectorType(const DetectorType type){
-  switch(type){
-    case TTLMonitor: return ReadoutType::TTLMonitor;
-    case LOKI:
-    case BIFROST:
-    case MIRACLES:
-    case CSPEC: return ReadoutType::CAEN;
-    case NMX:
-    case FREIA:
-    case TREX: return ReadoutType::VMM3;
-    case DREAM: return ReadoutType::DREAM;
-    case MAGIC: return ReadoutType::MAGIC;
-    default: throw std::runtime_error("No ReadoutType for provided DetectorType");
-  }
-}
-ReadoutType readoutType_from_int(const int int_type) {
-  return readoutType_from_detectorType(detectorType_from_int(int_type));
-}
 
 void Readout::setPulseTime(const uint32_t PHI, const uint32_t PLO, const uint32_t PPHI, const uint32_t PPLO) {
   phi = PHI;
@@ -152,99 +118,128 @@ void Readout::check_size_and_send() {
   }
 }
 
-void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const CAEN_readout_t *data) {
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const efu_time t, const CAEN_readout_t *data) {
   check_size_and_send();
   if (verbosity > 2){
     std::cout << "Add to the packet Ring=" << static_cast<unsigned>(Ring) << " FEN=" << static_cast<unsigned>(FEN);
-    std::cout << " TimeHigh=" << TimeHigh << " TimeLow=" << TimeLow << " Tube=" << static_cast<unsigned>(data->caen_readout_channel);
-    std::cout << " AmplA=" << data->caen_readout_a << " AmplB=" << data->caen_readout_b << std::endl;
+    std::cout << " TimeHigh=" << t.high() << " TimeLow=" << t.low() << " Tube=" << static_cast<unsigned>(data->channel);
+    std::cout << " AmplA=" << data->a << " AmplB=" << data->b << std::endl;
   }
   auto *dp = (struct CaenData *)(buffer + DataSize);
   dp->Ring = Ring;
   dp->FEN = FEN;
   dp->Length = sizeof(struct CaenData);
-  dp->TimeHigh = TimeHigh;
-  dp->TimeLow = TimeLow;
-  dp->Tube = data->caen_readout_channel;
-  dp->AmplA = data->caen_readout_a;
-  dp->AmplB = data->caen_readout_b;
-  dp->AmplC = data->caen_readout_c;
-  dp->AmplD = data->caen_readout_d;
+  dp->TimeHigh = t.high();
+  dp->TimeLow = t.low();
+  dp->Tube = data->channel;
+  dp->AmplA = data->a;
+  dp->AmplB = data->b;
+  dp->AmplC = data->c;
+  dp->AmplD = data->d;
   DataSize += dp->Length;
   hp->TotalLength = DataSize;
 }
-void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const TTLMonitor_readout_t *data) {
+
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const efu_time t, const TTLMonitor_readout_t *data) {
   if (verbosity > 2){
     std::cout << "Add to the packet Ring=" << static_cast<unsigned>(Ring) << " FEN=" << static_cast<unsigned>(FEN);
-    std::cout << " TimeHigh=" << TimeHigh << " TimeLow=" << TimeLow << " Pos=" << static_cast<unsigned>(data->ttlmonitor_readout_pos);
-    std::cout << " Channel=" << static_cast<unsigned>(data->ttlmonitor_readout_channel) << " ADC=" << data->ttlmonitor_readout_adc << std::endl;
+    std::cout << " TimeHigh=" << t.high() << " TimeLow=" << t.low() << " Pos=" << static_cast<unsigned>(data->pos);
+    std::cout << " Channel=" << static_cast<unsigned>(data->channel) << " ADC=" << data->adc << std::endl;
   }
   check_size_and_send();
   auto *dp = (struct TTLMonitorData *)(buffer + DataSize);
   dp->Ring = Ring;
   dp->FEN = FEN;
   dp->Length = sizeof(struct TTLMonitorData);
-  dp->TimeHigh = TimeHigh;
-  dp->TimeLow = TimeLow;
-  dp->Pos = data->ttlmonitor_readout_pos;
-  dp->Channel = data->ttlmonitor_readout_channel;
-  dp->ADC = data->ttlmonitor_readout_adc;
+  dp->TimeHigh = t.high();
+  dp->TimeLow = t.low();
+  dp->Pos = data->pos;
+  dp->Channel = data->channel;
+  dp->ADC = data->adc;
   DataSize += dp->Length;
   hp->TotalLength = DataSize;
 }
 
-
-void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const DREAM_readout_t *data) {
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const efu_time t, const DREAM_readout_t *data) {
   check_size_and_send();
   auto *dp = (struct DreamData *)(buffer + DataSize);
   dp->Ring = Ring;
   dp->FEN = FEN;
   dp->Length = sizeof(struct DreamData);
-  dp->TimeHigh = TimeHigh;
-  dp->TimeLow = TimeLow;
-  dp->OM = data->dream_readout_om;
-  dp->Cathode = data->dream_readout_cathode;
-  dp->Anode = data->dream_readout_anode;
+  dp->TimeHigh = t.high();
+  dp->TimeLow = t.low();
+  dp->OM = data->om;
+  dp->Cathode = data->cathode;
+  dp->Anode = data->anode;
   DataSize += dp->Length;
   hp->TotalLength = DataSize;
 }
-void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const VMM3_readout_t *data) {
+
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const efu_time t, const VMM3_readout_t *data) {
   check_size_and_send();
   auto *dp = (struct VMM3Data *)(buffer + DataSize);
   dp->Ring = Ring;
   dp->FEN = FEN;
   dp->Length = sizeof(struct VMM3Data);
-  dp->TimeHigh = TimeHigh;
-  dp->TimeLow = TimeLow;
-  dp->BC = data->vmm3_readout_bc;
-  dp->OTADC = data->vmm3_readout_otadc;
-  dp->GEO = data->vmm3_readout_geo;
-  dp->TDC = data->vmm3_readout_tdc;
-  dp->VMM = data->vmm3_readout_vmm;
-  dp->Channel = data->vmm3_readout_channel;
+  dp->TimeHigh = t.high();
+  dp->TimeLow = t.low();
+  dp->BC = data->bc;
+  dp->OTADC = data->otadc;
+  dp->GEO = data->geo;
+  dp->TDC = data->tdc;
+  dp->VMM = data->vmm;
+  dp->Channel = data->channel;
   DataSize += dp->Length;
   hp->TotalLength = DataSize;
 }
 
-void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const uint32_t TimeHigh, const uint32_t TimeLow, const void *data) {
-  lasthi = TimeHigh;
-  lastlo = TimeLow;
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const double tof, const double weight, const void *data) {
+  // store the readout to file if requested
+  if (dataset.has_value()) saveReadout(Ring, FEN, tof, weight, data);
+  // provided time-of-flight plus the current pulse time
+  auto t = efu_time(tof) + time;
+  // TODO implement t = (tof % period) + time -- such that we have realistic reference times
+  if (!network){
+    if (verbosity > 1) std::cout << "No readout added to buffer due to disabled network" << std::endl;
+    return;
+  }
+  lasthi = t.high();
+  lastlo = t.low();
   const auto type = readoutType_from_detectorType(Type);
   switch (type) {
-    case ReadoutType::CAEN: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const CAEN_readout_t*>(data));
-    case ReadoutType::TTLMonitor: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const TTLMonitor_readout_t*>(data));
-    case ReadoutType::DREAM: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const DREAM_readout_t*>(data));
-    case ReadoutType::VMM3: return addReadout(Ring, FEN, TimeHigh, TimeLow, static_cast<const VMM3_readout_t*>(data));
+    case ReadoutType::CAEN: return addReadout(Ring, FEN, t, static_cast<const CAEN_readout_t*>(data));
+    case ReadoutType::TTLMonitor: return addReadout(Ring, FEN, t, static_cast<const TTLMonitor_readout_t*>(data));
+    case ReadoutType::DREAM: return addReadout(Ring, FEN, t, static_cast<const DREAM_readout_t*>(data));
+    case ReadoutType::VMM3: return addReadout(Ring, FEN, t, static_cast<const VMM3_readout_t*>(data));
+    default: throw std::runtime_error("This readout data type not implemented yet!");
+  }
+}
+
+void Readout::saveReadout(const uint8_t Ring, const uint8_t FEN, const double tof, const double weight, const void *data) {
+  if (!dataset.has_value()){
+    if (verbosity > 1) std::cout << "No readout saved to file due to no dataset available" << std::endl;
+    return;
+  }
+  const auto type = readoutType_from_detectorType(Type);
+  switch (type) {
+    case ReadoutType::CAEN: return saveReadout(CAEN_event(Ring, FEN, tof, weight, static_cast<const CAEN_readout_t*>(data)));
+    case ReadoutType::TTLMonitor: return saveReadout(TTLMonitor_event(Ring, FEN, tof, weight, static_cast<const TTLMonitor_readout_t*>(data)));
+    case ReadoutType::DREAM: return saveReadout(DREAM_event(Ring, FEN, tof, weight, static_cast<const DREAM_readout_t*>(data)));
+    case ReadoutType::VMM3: return saveReadout(VMM3_event(Ring, FEN, tof, weight, static_cast<const VMM3_readout_t*>(data)));
     default: throw std::runtime_error("This readout data type not implemented yet!");
   }
 }
 
 int Readout::send() {
+  if (!network){
+    if (verbosity > 1) std::cout << "No packet sent due to disabled network" << std::endl;
+    return 0;
+  }
   char addr_buffer[INET_ADDRSTRLEN];
   inet_ntop(AF_INET, &remoteSockAddr.sin_addr.s_addr, addr_buffer, sizeof(addr_buffer));
-  // convert the port number for 'network byte order' to host byte order
-  auto addr_port = ntohs(remoteSockAddr.sin_port);
   if (verbosity > 1) {
+    // convert the port number for 'network byte order' to host byte order
+    auto addr_port = ntohs(remoteSockAddr.sin_port);
     std::cout << "Send the packet, to " << addr_buffer << ":" << addr_port << std::endl;
   }
 
@@ -253,6 +248,7 @@ int Readout::send() {
   if (ret < 0 && verbosity > -1) {
     printf("socket sendto() failed: returns %d\n", ret);
   }
+  newPacket();
   return ret;
 }
 
@@ -282,7 +278,7 @@ int check_and_send_tcp(const char* addr, const char* port, const char* msg, cons
   if (result == nullptr) return 0;
 
   if (msg != nullptr) {
-    if (write(sfd, msg, strlen(msg)) != strlen(msg)) {
+    if (write(sfd, msg, strlen(msg)) != static_cast<ssize_t>(strlen(msg))) {
       if (verbosity > -1) std::cout << "Failed to send (full) message " << msg << std::endl;
       return -1;
     }
@@ -299,6 +295,10 @@ int check_and_send_tcp(const char* addr, const char* port, const char* msg, cons
 }
 
 int Readout::command_shutdown() const {
+  if (!network){
+    if (verbosity > 1) std::cout << "No shutdown command sent due to disabled network" << std::endl;
+    return 0;
+  }
   char tcp[10];
   sprintf(tcp, "%d", tcp_port);
   int ok = check_and_send_tcp(ipaddr.c_str(), tcp, "EXIT\n", verbosity);
@@ -322,3 +322,5 @@ int Readout::command_shutdown() const {
   }
   return 0;
 }
+
+

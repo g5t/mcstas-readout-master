@@ -17,21 +17,22 @@ are explained in a number of 'Detector Interface Control Documents',
 produced by the Experiment Control and Data Curation division of the Data Management & Software Centre.
 
 ## Common McStas component parameters
-| Parameter      | Type   | Description                                                                             |
-|----------------|--------|-----------------------------------------------------------------------------------------|
-| `ring`         | named  | identifies the Readout Ring                                                             |
-| `fen`          | named  | identifies the Front End Node                                                           |
-| `tof`          | named  | time-of-flight of the neutron, default: `_particle->t`, any `USER_VARS` value is valid  |
-| `ip`           | string | the resolvable domain name or IP address of the EFU which will receive the packets      |
-| `port`         | int    | the EFU event-packet UDP port, 9000 by default to match the EFU default                 |
-| `command_port` | int    | the EFU command TCP port, 10800 by default to match the EFU default                     |
-| `broadcast`    | int    | flag to control if event packets are sent, on by default                                |
-| `pulse_rate`   | double | the reference time pulse rate, used in calculating EFU-required time stamps             |
-| `noisy`        | int    | flag to control if otherwise-dropped events should be replaced by noise, off by default |
-| `noise_level`  | double | if `noisy`, *how* noisy &mdash; fractional probability of noise: 0.1 by default         |
-| `event_mode`   | string | `"p"` for `rand_poisson(_particle->p)`, `"pp"` for p<sup>2</sup>                        |
-| `verbose`      | int    | controls `STDOUT` printing: -1=silent, 0=errors, 1=warnings, 2=info, 3=details          |
-| `ess_type`     | int    | identifies simulated ESS readout &mdash; BIFROST: 0x34 (dec 52), CSPEC: 0x40 (dec 64)   |
+| Parameter      | Type   | Description                                                                              |
+|----------------|--------|------------------------------------------------------------------------------------------|
+| `ring`         | named  | identifies the Readout Ring                                                              |
+| `fen`          | named  | identifies the Front End Node                                                            |
+| `tof`          | named  | time-of-flight of the neutron, default: `_particle->t`, any `USER_VARS` value is valid   |
+| `ip`           | string | the resolvable domain name or IP address of the EFU which will receive the packets       |
+| `port`         | int    | the EFU event-packet UDP port, 9000 by default to match the EFU default                  |
+| `command_port` | int    | the EFU command TCP port, 10800 by default to match the EFU default                      |
+| `broadcast`    | int    | flag to control if event packets are sent, on by default                                 |
+| `pulse_rate`   | double | the reference time pulse rate, used in calculating EFU-required time stamps              |
+| `noisy`        | int    | flag to control if otherwise-dropped events should be replaced by noise, off by default  |
+| `noise_level`  | double | if `noisy`, *how* noisy &mdash; fractional probability of noise: 0.1 by default          |
+| `event_mode`   | string | `"p"` for `rand_poisson(_particle->p)`, `"pp"` for p<sup>2</sup>                         |
+| `verbose`      | int    | controls `STDOUT` printing: -1=silent, 0=errors, 1=warnings, 2=info, 3=details           |
+| `ess_type`     | int    | identifies simulated ESS readout &mdash; BIFROST: 0x34 (dec 52), CSPEC: 0x40 (dec 64)    |
+| `filename`     | string | if present, neutron ray data provided to the broadcaster will be stored to HDF5 filename | 
 
 
 ## Common Event Formation Unit parameters
