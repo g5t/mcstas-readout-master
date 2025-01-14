@@ -2,10 +2,6 @@
 #include <chrono>
 #include <thread>
 
-#ifdef _WIN32
-#define NOMINMAX
-#endif
-
 #include <highfive/H5File.hpp>
 #include <highfive/H5DataSet.hpp>
 #include <highfive/H5DataSpace.hpp>

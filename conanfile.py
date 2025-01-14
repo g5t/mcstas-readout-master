@@ -16,7 +16,6 @@ class PolystarRecipe(ConanFile):
     }
 
     def requirements(self):
-        self.requires("pybind11/2.13.6")
         self.requires("catch2/3.6.0")
         self.requires("highfive/2.10.0")
         self.requires("cargs/1.2.0")

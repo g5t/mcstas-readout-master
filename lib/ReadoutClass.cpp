@@ -13,14 +13,6 @@
 #include <string>
 #include <tuple>
 
-/// \brief Use MSG_SIGNAL on Linuxes
-#ifdef MSG_NOSIGNAL
-#define SEND_FLAGS MSG_NOSIGNAL
-#else
-#define SEND_FLAGS 0
-#endif
-
-
 void Readout::setPulseTime(const uint32_t PHI, const uint32_t PLO, const uint32_t PPHI, const uint32_t PPLO) {
   phi = PHI;
   plo = PLO;
