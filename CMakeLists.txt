@@ -63,6 +63,8 @@ if (MSVC)
     # Allow UTF-8 identifiers https://stackoverflow.com/a/47704050
     add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+    # Prevent Windows.h from defining its own min and max macros
+    add_definitions(-DNOMINMAX)
 else()
     # lots of warnings -- add -Werror for  all warnings as errors
     add_compile_options(-Wall -Wextra -pedantic)

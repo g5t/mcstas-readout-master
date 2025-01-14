@@ -6046,9 +6046,9 @@ inline cluon::data::TimeStamp now() noexcept {
 // clang-format off
 #ifdef WIN32
     #ifdef _WIN64
-        #define ssize_t __int64
+        #define CLUON_SSIZE_T __int64
     #else
-        #define ssize_t long
+        #define CLUON_SSIZE_T long
     #endif
 
     // Disable warning "'<': signed/unsigned mismatch".
@@ -6088,6 +6088,7 @@ inline cluon::data::TimeStamp now() noexcept {
 #else
     // Undefine define for non-Win32 systems:
     #define LIBCLUON_API
+    #define CLUON_SSIZE_T ssize_t
 #endif
 // clang-format on
 
@@ -6654,14 +6655,14 @@ specifies the UDP port to which the data shall be sent to.
 To finally send data, simply call the method `send` supplying the data to be
 sent: `sender.send(std::move("Hello World!")`. Please note that the data is
 supplied using the _move_-semantics. The method `send` returns a
-`std::pair<ssize_t, int32_t>` where the first element returns the size of the
+`std::pair<CLUON_SSIZE_T, int32_t>` where the first element returns the size of the
 successfully sent bytes and the second element contains the error code in case
 the transmission of the data failed.
 
 \code{.cpp}
 cluon::UDPSender sender("127.0.0.1", 1234);
 
-std::pair<ssize_t, int32_t> retVal = sender.send(std::move("Hello World!"));
+std::pair<CLUON_SSIZE_T, int32_t> retVal = sender.send(std::move("Hello World!"));
 
 std::cout << "Send " << retVal.first << " bytes, error code = " << retVal.second << std::endl;
 \endcode
@@ -6692,7 +6693,7 @@ class LIBCLUON_API UDPSender {
      * @param data Data to send.
      * @return Pair: Number of bytes sent and errno.
      */
-    std::pair<ssize_t, int32_t> send(std::string &&data) const noexcept;
+    std::pair<CLUON_SSIZE_T, int32_t> send(std::string &&data) const noexcept;
 
    public:
     /**
@@ -6905,7 +6906,7 @@ The complete signature for the connectionLostDelegate function is
 To finally send data, simply call the method `send` supplying the data to be
 sent: `connection.send(std::move("Hello World!")`. Please note that the data is
 supplied using the _move_-semantics. The method `send` returns a
-`std::pair<ssize_t, int32_t>` where the first element returns the size of the
+`std::pair<CLUON_SSIZE_T, int32_t>` where the first element returns the size of the
 successfully sent bytes and the second element contains the error code in case
 the transmission of the data failed.
 
@@ -6922,7 +6923,7 @@ cluon::TCPConnection connection("127.0.0.1", 1234,
     },
     [](){ std::cout << "Connection lost." << std::endl; });
 
-std::pair<ssize_t, int32_t> retVal = connection.send(std::move("Hello World!"));
+std::pair<CLUON_SSIZE_T, int32_t> retVal = connection.send(std::move("Hello World!"));
 \endcode
 
 After creating an instance of class `cluon::TCPConnection`, it is immediately
@@ -6979,7 +6980,7 @@ class LIBCLUON_API TCPConnection {
      * @param data Data to send.
      * @return Pair: Number of bytes sent and errno.
      */
-    std::pair<ssize_t, int32_t> send(std::string &&data) const noexcept;
+    std::pair<CLUON_SSIZE_T, int32_t> send(std::string &&data) const noexcept;
 
    private:
     /**
@@ -10532,7 +10533,7 @@ inline uint16_t UDPSender::getSendFromPort() const noexcept {
     return m_portToSentFrom;
 }
 
-inline std::pair<ssize_t, int32_t> UDPSender::send(std::string &&data) const noexcept {
+inline std::pair<CLUON_SSIZE_T, int32_t> UDPSender::send(std::string &&data) const noexcept {
     if (-1 == m_socket) {
         return {-1, EBADF};
     }
@@ -10549,7 +10550,7 @@ inline std::pair<ssize_t, int32_t> UDPSender::send(std::string &&data) const noe
     }
 
     std::lock_guard<std::mutex> lck(m_socketMutex);
-    ssize_t bytesSent = ::sendto(m_socket,
+    CLUON_SSIZE_T bytesSent = ::sendto(m_socket,
                                  data.c_str(),
                                  data.length(),
                                  0,
@@ -10960,9 +10961,9 @@ inline void UDPReceiver::readFromSocket() noexcept {
         FD_SET(m_socket, &setOfFiledescriptorsToReadFrom); // NOLINT
         ::select(m_socket + 1, &setOfFiledescriptorsToReadFrom, nullptr, nullptr, &timeout);
 
-        ssize_t totalBytesRead{0};
+        CLUON_SSIZE_T totalBytesRead{0};
         if (FD_ISSET(m_socket, &setOfFiledescriptorsToReadFrom)) { // NOLINT
-            ssize_t bytesRead{0};
+            CLUON_SSIZE_T bytesRead{0};
             do {
                 bytesRead = ::recvfrom(m_socket,
                                        buffer.data(),
@@ -11215,7 +11216,7 @@ inline bool TCPConnection::isRunning() const noexcept {
     return (m_readFromSocketThreadRunning.load() && !TerminateHandler::instance().isTerminated.load());
 }
 
-inline std::pair<ssize_t, int32_t> TCPConnection::send(std::string &&data) const noexcept {
+inline std::pair<CLUON_SSIZE_T, int32_t> TCPConnection::send(std::string &&data) const noexcept {
     if (-1 == m_socket) {
         return {-1, EBADF};
     }
@@ -11238,7 +11239,7 @@ inline std::pair<ssize_t, int32_t> TCPConnection::send(std::string &&data) const
     }
 
     std::lock_guard<std::mutex> lck(m_socketMutex);
-    ssize_t bytesSent = ::send(m_socket, data.c_str(), data.length(), 0);
+    CLUON_SSIZE_T bytesSent = ::send(m_socket, data.c_str(), data.length(), 0);
     return {bytesSent, (0 > bytesSent ? errno : 0)};
 }
 
@@ -11275,7 +11276,7 @@ inline void TCPConnection::readFromSocket() noexcept {
             hasNewDataDelegate = (nullptr != m_newDataDelegate);
         }
         if (FD_ISSET(m_socket, &setOfFiledescriptorsToReadFrom) && hasNewDataDelegate) {
-            ssize_t bytesRead = ::recv(m_socket, buffer.data(), buffer.max_size(), 0);
+            CLUON_SSIZE_T bytesRead = ::recv(m_socket, buffer.data(), buffer.max_size(), 0);
             if (0 >= bytesRead) {
                 // 0 == bytesRead: peer shut down the connection; 0 > bytesRead: other error.
                 m_readFromSocketThreadRunning.store(false);
@@ -12262,9 +12263,9 @@ inline void FromLCMVisitor::visit(uint32_t id, std::string &&typeName, std::stri
         buffer.reserve(static_cast<uint32_t>(length));
 #ifdef WIN32
         for (uint32_t i = 0; i < static_cast<uint32_t>(length); i++) {
-            char c;
-            m_buffer.get(c);
-            buffer.push_back(c);
+            char nwc;
+            m_buffer.get(nwc);
+            buffer.push_back(nwc);
         }
 #else
         m_buffer.read(static_cast<char *>(&buffer[0]), static_cast<std::streamsize>(length));
