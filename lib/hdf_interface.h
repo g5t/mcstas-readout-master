@@ -7,10 +7,26 @@
 #include <highfive/H5DataSpace.hpp>
 
 #include "Readout.h"
-#include "efu_time.h"
+
+#ifdef WIN32
+// Export symbols if compile flags "READOUT_SHARED" and "READOUT_EXPORT" are set on Windows.
+    #ifdef READOUT_SHARED
+        #ifdef READOUT_EXPORT
+            #define RL_API __declspec(dllexport)
+        #else
+            #define RL_API __declspec(dllimport)
+        #endif
+    #else
+        // Disable definition if linking statically.
+        #define RL_API
+    #endif
+#else
+// Disable definition for non-Win32 systems.
+#define RL_API
+#endif
 
 //template<class T>
-class Event{
+class RL_API Event{
 public:
   uint8_t ring;
   uint8_t fen;
@@ -21,7 +37,7 @@ public:
   : ring(ring), fen(fen), time(time), weight(weight) {}
 };
 
-class CAEN_event: public Event {
+class RL_API CAEN_event: public Event {
 public:
   uint8_t channel;
   uint16_t a;
@@ -38,7 +54,7 @@ public:
   }
 };
 
-class TTLMonitor_event: public Event {
+class RL_API TTLMonitor_event: public Event {
 public:
   uint8_t channel;
   uint8_t pos;
@@ -53,7 +69,7 @@ public:
   }
 };
 
-class DREAM_event: public Event {
+class RL_API DREAM_event: public Event {
 public:
   uint8_t om;
   uint8_t cathode;
@@ -68,7 +84,7 @@ public:
   }
 };
 
-class VMM3_event: public Event {
+class RL_API VMM3_event: public Event {
 public:
   uint16_t bc;
   uint16_t otadc;
@@ -87,8 +103,8 @@ public:
 };
 
 namespace HighFive {
-  template<> DataType create_datatype<CAEN_event>();
-  template<> DataType create_datatype<TTLMonitor_event>();
-  template<> DataType create_datatype<DREAM_event>();
-  template<> DataType create_datatype<VMM3_event>();
+  RL_API template<> DataType create_datatype<CAEN_event>();
+  RL_API template<> DataType create_datatype<TTLMonitor_event>();
+  RL_API template<> DataType create_datatype<DREAM_event>();
+  RL_API template<> DataType create_datatype<VMM3_event>();
 }

@@ -64,7 +64,7 @@ if (MSVC)
     add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
     # Prevent Windows.h from defining its own min and max macros
-    add_definitions(-DNOMINMAX)
+    add_definitions(-DNOMINMAX -DREADOUT_SHARED -DREADOUT_EXPORT)
 else()
     # lots of warnings -- add -Werror for  all warnings as errors
     add_compile_options(-Wall -Wextra -pedantic)
@@ -92,9 +92,11 @@ list(APPEND CXX_TARGETS ${READOUT_REPLAY_BINARY} ${READOUT_TESTER_TARGET})
 # target for C++ shared library
 add_library(${READOUT_LIBRARY_TARGET} SHARED)
 list(APPEND LIB_TARGETS ${READOUT_LIBRARY_TARGET})
-set(Readout_LIBNAME "${CMAKE_SHARED_LIBRARY_PREFIX}Readout${CMAKE_SHARED_LIBRARY_SUFFIX}")
+#set(Readout_LIBNAME "${CMAKE_SHARED_LIBRARY_PREFIX}Readout${CMAKE_SHARED_LIBRARY_SUFFIX}")
 set_target_properties(${READOUT_LIBRARY_TARGET} PROPERTIES PUBLIC_HEADER Readout.h)
 set_target_properties(${READOUT_LIBRARY_TARGET} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
+
+add_library(READOUT::${READOUT_LIBRARY_TARGET} ALIAS ${READOUT_LIBRARY_TARGET}) # always alias namespaces locally
 
 # target for file-replay CLI utility
 list(APPEND BIN_TARGETS ${READOUT_REPLAY_BINARY})
@@ -104,6 +106,7 @@ target_link_libraries(${READOUT_REPLAY_BINARY} PRIVATE ${cargs_LIBRARIES} ${READ
 
 # target for testing library functionality
 add_executable(${READOUT_TESTER_TARGET})
+# target_include_directories(${READOUT_TESTER_TARGET} PRIVATE lib)
 target_link_libraries(${READOUT_TESTER_TARGET} PRIVATE Catch2::Catch2WithMain READOUT::${READOUT_LIBRARY_TARGET})
 include(CTest)
 include(Catch)
@@ -127,7 +130,6 @@ install(TARGETS ${READOUT_LIBRARY_TARGET} EXPORT ReadoutTargets
         PUBLIC_HEADER DESTINATION ${Readout_INCDIR})
 # The following would allow for importing Readout by another CMake ... but causes a CMake configuration error
 #install(EXPORT ReadoutTargets FILE ReadoutTargets.cmake NAMESPACE READOUT:: DESTINATION ${Readout_CMAKEDIR})
-add_library(READOUT::${READOUT_LIBRARY_TARGET} ALIAS ${READOUT_LIBRARY_TARGET}) # always alias namespaces locally
 
 configure_file("${PROJECT_SOURCE_DIR}/cmake/ReadoutConfig.cmake.in" "${PROJECT_BINARY_DIR}/ReadoutConfig.cmake" @ONLY)
 

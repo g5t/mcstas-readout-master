@@ -2,6 +2,25 @@
 #include <cstring>
 #include "ReadoutClass.h"
 
+
+#ifdef WIN32
+// Export symbols if compile flags "READOUT_SHARED" and "READOUT_EXPORT" are set on Windows.
+    #ifdef READOUT_SHARED
+        #ifdef READOUT_EXPORT
+            #define RL_API __declspec(dllexport)
+        #else
+            #define RL_API __declspec(dllimport)
+        #endif
+    #else
+        // Disable definition if linking statically.
+        #define RL_API
+    #endif
+#else
+// Disable definition for non-Win32 systems.
+#define RL_API
+#endif
+
+
 class Reader{
   std::string filename;
   std::optional<HighFive::File> file;
@@ -9,10 +28,10 @@ class Reader{
   DetectorType detector{DetectorType::Reserved};
   ReadoutType readout{ReadoutType::CAEN};
 public:
-  DetectorType detector_type() const {return detector;}
-  ReadoutType readout_type() const {return readout;}
+  RL_API DetectorType detector_type() const {return detector;}
+  RL_API ReadoutType readout_type() const {return readout;}
 
-  explicit Reader(const std::string& filename): filename{filename} {
+  RL_API explicit Reader(const std::string& filename): filename{filename} {
     try {
       file = HighFive::File(filename, HighFive::File::ReadOnly);  
     } catch (HighFive::Exception & ex) {
@@ -63,11 +82,13 @@ public:
     }
   }
 
-  [[nodiscard]] size_t size() const {
+  RL_API ~Reader() = default;
+
+  RL_API [[nodiscard]] size_t size() const {
     return dataset.has_value() ? dataset->getDimensions().back() : 0;
   }
 
-  auto get_CAEN(size_t index, size_t count) const {
+  RL_API auto get_CAEN(size_t index, size_t count) const {
     if (readout != ReadoutType::CAEN){ throw std::runtime_error("Non CAEN readout type"); }
     if (index >= size()) { throw std::runtime_error("Out of bounds event requested");}
     if (index + count > size()) { throw std::runtime_error("Out of bounds event requested");}
@@ -75,7 +96,7 @@ public:
     dataset->select({index}, {count}).read(event);
     return event;
   }
-  auto get_TTLMonitor(size_t index, size_t count) const {
+  RL_API auto get_TTLMonitor(size_t index, size_t count) const {
     if (readout != ReadoutType::TTLMonitor){ throw std::runtime_error("Non TTLMonitor readout type"); }
     if (index >= size()) { throw std::runtime_error("Out of bounds event requested"); }
     if (index + count > size()) { throw std::runtime_error("Out of bounds event requested");}
@@ -83,7 +104,7 @@ public:
     dataset->select({index}, {count}).read(event);
     return event;
   }
-  auto get_VMM3(size_t index, size_t count) const{
+  RL_API auto get_VMM3(size_t index, size_t count) const{
     if (readout != ReadoutType::VMM3) { throw std::runtime_error("Non VMM3 readout type"); }
     if (index >= size()) { throw std::runtime_error("Out of bounds event requested"); }
     if (index + count > size()) { throw std::runtime_error("Out of bounds event requested");}
@@ -91,7 +112,7 @@ public:
     dataset->select({index}, {count}).read(event);
     return event;
   }
-  auto get_DREAM(size_t index, size_t count) const{
+  RL_API auto get_DREAM(size_t index, size_t count) const{
     if (readout != ReadoutType::DREAM) { throw std::runtime_error("Non VMM3 readout type"); }
     if (index >= size()) { throw std::runtime_error("Out of bounds event requested"); }
     if (index + count > size()) { throw std::runtime_error("Out of bounds event requested");}
@@ -100,25 +121,25 @@ public:
     return event;
   }
 
-  auto all_CAEN() const {
+  RL_API auto all_CAEN() const {
     if (readout != ReadoutType::CAEN){ throw std::runtime_error("Non CAEN readout type"); }
     std::vector<CAEN_event> events;
     dataset->read(events);
     return events;
   }
-  auto all_TTLMonitor() const {
+  RL_API auto all_TTLMonitor() const {
     if (readout != ReadoutType::TTLMonitor){ throw std::runtime_error("Non TTLMonitor readout type"); }
     std::vector<TTLMonitor_event> events;
     dataset->read(events);
     return events;
   }
-  auto all_VMM3() const {
+  RL_API auto all_VMM3() const {
     if (readout != ReadoutType::VMM3){ throw std::runtime_error("Non VMM3 readout type"); }
     std::vector<VMM3_event> events;
     dataset->read(events);
     return events;
   }
-  auto all_DREAM() const {
+  RL_API auto all_DREAM() const {
     if (readout != ReadoutType::DREAM){ throw std::runtime_error("Non DREAM readout type"); }
     std::vector<DREAM_event> events;
     dataset->read(events);

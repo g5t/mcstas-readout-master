@@ -20,7 +20,6 @@
 #include "version.hpp"
 #include "efu_time.h"
 
-
 class Readout {
 public:
   Readout(
