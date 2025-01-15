@@ -103,8 +103,8 @@ public:
 };
 
 namespace HighFive {
-  RL_API template<> DataType create_datatype<CAEN_event>();
-  RL_API template<> DataType create_datatype<TTLMonitor_event>();
-  RL_API template<> DataType create_datatype<DREAM_event>();
-  RL_API template<> DataType create_datatype<VMM3_event>();
+  template<> RL_API DataType create_datatype<CAEN_event>();
+  template<> RL_API DataType create_datatype<TTLMonitor_event>();
+  template<> RL_API DataType create_datatype<DREAM_event>();
+  template<> RL_API DataType create_datatype<VMM3_event>();
 }

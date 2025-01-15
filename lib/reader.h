@@ -67,8 +67,8 @@ public:
       return;
     }
     try {
-      dataset->getAttribute("detector").read(detector);
-      dataset->getAttribute("readout").read(readout);
+      detector = detectorType_from_name(dataset->getAttribute("detector").read<std::string>());
+      readout = readoutType_from_name(dataset->getAttribute("readout").read<std::string>());
     } catch (HighFive::Exception & ex) {
       std::cout << "Error determining dataset \"" << dataset_name << "\" detector and readout types, with message:\n";
       std::cout << ex.what() << std::endl;

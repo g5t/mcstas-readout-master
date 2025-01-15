@@ -134,8 +134,8 @@ public:
     file->createAttribute<std::string>("version", u8str(libreadout::version::version_number));
     file->createAttribute<std::string>("revision", u8str(libreadout::version::git_revision));
     file->createAttribute<std::string>("events", dataset_name);
-    dataset->createAttribute("detector", Type);
-    dataset->createAttribute("readout", readoutType_from_detectorType(Type));
+    dataset->createAttribute("detector", detectorType_name(Type));
+    dataset->createAttribute("readout", readoutType_name(readoutType_from_detectorType(Type)));
   }
 
   void enable_network() {network = true;}

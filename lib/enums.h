@@ -1,6 +1,23 @@
 #pragma once
 #include "hdf_interface.h"
 
+#ifdef WIN32
+// Export symbols if compile flags "READOUT_SHARED" and "READOUT_EXPORT" are set on Windows.
+    #ifdef READOUT_SHARED
+        #ifdef READOUT_EXPORT
+            #define RL_API __declspec(dllexport)
+        #else
+            #define RL_API __declspec(dllimport)
+        #endif
+    #else
+        // Disable definition if linking statically.
+        #define RL_API
+    #endif
+#else
+// Disable definition for non-Win32 systems.
+#define RL_API
+#endif
+
 enum class Verbosity {
   silent,
   errors,
@@ -35,7 +52,10 @@ DetectorType detectorType_from_int(int);
 ReadoutType readoutType_from_detectorType(DetectorType type);
 ReadoutType readoutType_from_int(int int_type);
 
-namespace HighFive {
-  template<> DataType create_datatype<DetectorType>();
-  template<> DataType create_datatype<ReadoutType>();
-}
+DetectorType detectorType_from_name(const std::string & name);
+std::string detectorType_name(DetectorType);
+ReadoutType readoutType_from_name(const std::string & name);
+std::string readoutType_name(ReadoutType);
+//
+//DetectorType detectorType_from_name(std::string && name);
+//ReadoutType readoutType_from_name(std::string && name);

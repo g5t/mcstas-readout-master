@@ -8454,10 +8454,10 @@ inline std::pair<bool, cluon::data::Envelope> extractEnvelope(std::istream &in) 
         buffer.clear();                                // LCOV_EXCL_LINE
         retVal = true;                                 // LCOV_EXCL_LINE
         for (uint8_t i{0}; i < OD4_HEADER_SIZE; i++) { // LCOV_EXCL_LINE
-            char c;                                    // LCOV_EXCL_LINE
-            in.get(c);                                 // LCOV_EXCL_LINE
+            char nc;                                    // LCOV_EXCL_LINE
+            in.get(nc);                                 // LCOV_EXCL_LINE
             retVal &= in.good();                       // LCOV_EXCL_LINE
-            buffer.push_back(c);                       // LCOV_EXCL_LINE
+            buffer.push_back(nc);                       // LCOV_EXCL_LINE
         }
         if (retVal) { // LCOV_EXCL_LINE
 #else                 // LCOV_EXCL_LINE
@@ -8470,10 +8470,10 @@ inline std::pair<bool, cluon::data::Envelope> extractEnvelope(std::istream &in) 
 #ifdef WIN32                                           // LCOV_EXCL_LINE
                 buffer.clear();                        // LCOV_EXCL_LINE
                 for (uint32_t i{0}; i < LENGTH; i++) { // LCOV_EXCL_LINE
-                    char c;                            // LCOV_EXCL_LINE
-                    in.get(c);                         // LCOV_EXCL_LINE
+                    char nc;                            // LCOV_EXCL_LINE
+                    in.get(nc);                         // LCOV_EXCL_LINE
                     retVal &= in.good();               // LCOV_EXCL_LINE
-                    buffer.push_back(c);               // LCOV_EXCL_LINE
+                    buffer.push_back(nc);               // LCOV_EXCL_LINE
                 }
 #else // LCOV_EXCL_LINE
                 in.read(&buffer[0], static_cast<std::streamsize>(LENGTH));
@@ -12465,9 +12465,9 @@ inline std::string FromMsgPackVisitor::readString(std::istream &in) noexcept {
                 buffer.reserve(length);
 #ifdef WIN32
                 for (uint32_t i = 0; i < static_cast<uint32_t>(length); i++) {
-                    char c;
-                    in.get(c);
-                    buffer.push_back(c);
+                    char nc;
+                    in.get(nc);
+                    buffer.push_back(nc);
                 }
 #else
                 in.read(static_cast<char *>(&buffer[0]), static_cast<std::streamsize>(length));
