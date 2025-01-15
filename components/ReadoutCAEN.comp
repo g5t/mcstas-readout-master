@@ -20,6 +20,7 @@ pulse_rate = 14,
 int noisy=0,
 noise_level=0.1,
 string event_mode = "p",
+string filename = 0,
 int verbose=0, // -1: silent, 0: errors, 1: warnings, 2: info, 3: details
 int ess_type=52 // 0x34 == 52, 0x41==65
 )
@@ -78,6 +79,8 @@ if (ip == 0 || ip[0] == '\0'){
 }
 readout_newPacket(readout_ptr);
 readout_verbose(readout_ptr, verbose);
+if (!broadcast) readout_disable_network(readout_ptr);
+if ((filename != NULL) && (filename[0] != '\0')) readout_dump_to(filename);
 
 fen_present = ((fen != NULL) && (fen[0] != '\0')) ? 1 : 0;
 c_present = ((c != NULL) && (c[0] != '\0')) ? 1 : 0;
@@ -142,16 +145,16 @@ if (event_count) {
   // add error checking of int -> uintN_t values?
   uint8_t RING = (uint8_t)int_ring;
   uint8_t FEN = (uint8_t)int_fen;
-  readout_data.caen_readout_channel = (uint8_t)int_tube;
-  readout_data.caen_readout_a = (uint16_t)int_A;
-  readout_data.caen_readout_b = (uint16_t)int_B;
-  readout_data.caen_readout_c = (uint16_t)int_C;
-  readout_data.caen_readout_d = (uint16_t)int_D;
+  readout_data.channel = (uint8_t)int_tube;
+  readout_data.a = (uint16_t)int_A;
+  readout_data.b = (uint16_t)int_B;
+  readout_data.c = (uint16_t)int_C;
+  readout_data.d = (uint16_t)int_D;
   if (verbose > 2)
-    printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, readout_data.caen_readout_channel, readout_data.caen_readout_a, readout_data.caen_readout_b, double_tof, event_count);
+    printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, readout_data.channel, readout_data.a, readout_data.b, double_tof, event_count);
   for (int i=0; i<1 /*event_count*/; ++i){
-    // Send the event to the broadcaster to be accumulated and broadcast
-    if (broadcast) readout_add(readout_ptr, RING, FEN, double_tof, (const void *)(&readout_data));
+    // Send the event to the broadcaster to be accumulated and broadcast and/or store the event to file
+    readout_add(readout_ptr, RING, FEN, double_tof, p_or_pp, (const void *)(&readout_data));
   }
 }
 %}

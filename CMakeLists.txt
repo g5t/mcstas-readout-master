@@ -1,8 +1,34 @@
-cmake_minimum_required(VERSION 3.6.0...3.27.7 FATAL_ERROR)
-project(Readout VERSION 0.3.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.30)
+cmake_policy(SET CMP0076 NEW) # Ensure target_sources converts relative paths
+cmake_policy(SET CMP0017 NEW) # Prefer cmake's own files for include/find_package before CMAKE_MODULE_PATH
 
 set(CMAKE_MACOSX_RPATH OFF)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
+list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
+set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/cmake/conan_provider.cmake")
+
+# Read the version of readout
+include(checkgit)
+checkGitSetup(READOUT) # defines/creates version.hpp; and library 'git_version'
+# So that we can print it to the console along with the specified build type
+message(STATUS "Build readout v${READOUT_VERSION} (e.g., ${READOUT_SAFE_VERSION}) with type ${CMAKE_BUILD_TYPE}")
+
+if ( "x${VERSION}" STREQUAL "x" )
+    # set(VERSION ${READOUT_SAFE_VERSION})
+    set(VERSION "0.0.4")
+endif()
+
+project(mccode_readout LANGUAGES CXX VERSION "${VERSION}")
+
+set(READOUT_LIBRARY_TARGET readout)
+set(READOUT_REPLAY_BINARY replay)
+set(READOUT_SINGLE_HEADER readout.h) # must match template file in project root
+SET(READOUT_LIB_DESTINATION lib)
+SET(READOUT_BIN_DESTINATION bin)
+SET(READOUT_INCLUDE_DESTINATION include)
+set(READOUT_TESTER_TARGET readout_tester)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(GNUInstallDirs)
 set(Readout_BINDIR "${CMAKE_INSTALL_BINDIR}")  # e.g. <prefix>/bin
@@ -28,25 +54,82 @@ include(CMakePackageConfigHelpers)
 write_basic_package_version_file( "${PROJECT_BINARY_DIR}/ReadoutConfigVersion.cmake"
         VERSION ${Readout_VERSION} COMPATIBILITY SameMajorVersion )
 
-include_directories(.)
+add_definitions(-DUSE_HIGHFIVE)
+if (MSVC)
+    # warning level 4 -- add /WX for all warnings as errors
+    add_compile_options(/W4)
+    # suppress MSVC warning C4996 about 'localtime' vs 'localtime_s'
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    # Allow UTF-8 identifiers https://stackoverflow.com/a/47704050
+    add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+    add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+    # Prevent Windows.h from defining its own min and max macros
+    add_definitions(-DNOMINMAX -DREADOUT_SHARED -DREADOUT_EXPORT)
+else()
+    # lots of warnings -- add -Werror for  all warnings as errors
+    add_compile_options(-Wall -Wextra -pedantic)
+endif()
 
-add_library(Readout SHARED Readout.cpp ReadoutClass.cpp)
-set(Readout_LIBNAME "${CMAKE_SHARED_LIBRARY_PREFIX}Readout${CMAKE_SHARED_LIBRARY_SUFFIX}")
-set_target_properties(Readout PROPERTIES PUBLIC_HEADER Readout.h)
-set_target_properties(Readout PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
+set(CMAKE_MACOSX_RPATH OFF)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif(NOT CMAKE_BUILD_TYPE)
 
-set_property(TARGET Readout PROPERTY CXX_STANDARD 11)
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    add_definitions(-DDEBUG)
+endif()
 
-add_executable(tester tester.cpp)
-target_link_libraries(tester Readout)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# With GCC 10+ the interproceedural optmization only adds to compilation time without improving performance
+SET(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
 
-install(TARGETS Readout EXPORT ReadoutTargets
+find_package(cargs REQUIRED)
+find_package(Catch2 REQUIRED)
+
+
+list(APPEND CXX_TARGETS ${READOUT_REPLAY_BINARY} ${READOUT_TESTER_TARGET})
+
+# target for C++ shared library
+add_library(${READOUT_LIBRARY_TARGET} SHARED)
+list(APPEND LIB_TARGETS ${READOUT_LIBRARY_TARGET})
+#set(Readout_LIBNAME "${CMAKE_SHARED_LIBRARY_PREFIX}Readout${CMAKE_SHARED_LIBRARY_SUFFIX}")
+set_target_properties(${READOUT_LIBRARY_TARGET} PROPERTIES PUBLIC_HEADER Readout.h)
+set_target_properties(${READOUT_LIBRARY_TARGET} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
+
+add_library(READOUT::${READOUT_LIBRARY_TARGET} ALIAS ${READOUT_LIBRARY_TARGET}) # always alias namespaces locally
+
+# target for file-replay CLI utility
+list(APPEND BIN_TARGETS ${READOUT_REPLAY_BINARY})
+add_executable(${READOUT_REPLAY_BINARY} EXCLUDE_FROM_ALL)
+target_include_directories(${READOUT_REPLAY_BINARY} PRIVATE ${cargs_INCLUDE_DIR})
+target_link_libraries(${READOUT_REPLAY_BINARY} PRIVATE ${cargs_LIBRARIES} ${READOUT_LIBRARY_TARGET})
+
+# target for testing library functionality
+add_executable(${READOUT_TESTER_TARGET})
+# target_include_directories(${READOUT_TESTER_TARGET} PRIVATE lib)
+target_link_libraries(${READOUT_TESTER_TARGET} PRIVATE Catch2::Catch2WithMain READOUT::${READOUT_LIBRARY_TARGET})
+include(CTest)
+include(Catch)
+catch_discover_tests(${READOUT_TESTER_TARGET})
+
+add_subdirectory(lib)  # sources for libreadout
+add_subdirectory(src)  # sources for file interface in C++
+add_subdirectory(test) # sources for the testing binary
+
+list(APPEND CXX_TARGETS ${LIB_TARGETS})
+foreach(CXX_TARGET IN LISTS CXX_TARGETS)
+    addGitVersion(${CXX_TARGET})
+endforeach()
+
+include(readout-hdf5)
+
+install(TARGETS ${READOUT_LIBRARY_TARGET} EXPORT ReadoutTargets
         RUNTIME DESTINATION ${Readout_BINDIR}
         LIBRARY DESTINATION ${Readout_LIBDIR}
         ARCHIVE DESTINATION ${Readout_LIBDIR}
         PUBLIC_HEADER DESTINATION ${Readout_INCDIR})
-install(EXPORT ReadoutTargets FILE ReadoutTargets.cmake NAMESPACE READOUT:: DESTINATION ${Readout_CMAKEDIR})
-add_library(READOUT::Readout ALIAS Readout) # always alias namespaces locally
+# The following would allow for importing Readout by another CMake ... but causes a CMake configuration error
+#install(EXPORT ReadoutTargets FILE ReadoutTargets.cmake NAMESPACE READOUT:: DESTINATION ${Readout_CMAKEDIR})
 
 configure_file("${PROJECT_SOURCE_DIR}/cmake/ReadoutConfig.cmake.in" "${PROJECT_BINARY_DIR}/ReadoutConfig.cmake" @ONLY)
 
@@ -60,12 +143,3 @@ install( PROGRAMS "${PROJECT_BINARY_DIR}/readout-config" DESTINATION ${Readout_B
 file(GLOB ALL_COMPONENTS "${CMAKE_CURRENT_SOURCE_DIR}/components/*.comp")
 install(FILES ${ALL_COMPONENTS} DESTINATION ${Readout_DATADIR})
 
-
-include(fetcher)
-git_fetch(doctest 2.4.11 https://github.com/doctest/doctest)
-
-# find_package(doctest REQUIRED doctest_SOURCE_DIR)
-# Make test executable
-add_executable(tests main.cpp Readout.cpp ReadoutClass.cpp)
-target_compile_features(tests PRIVATE cxx_std_17)
-target_link_libraries(tests PRIVATE doctest)
