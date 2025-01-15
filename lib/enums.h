@@ -52,10 +52,10 @@ DetectorType detectorType_from_int(int);
 ReadoutType readoutType_from_detectorType(DetectorType type);
 ReadoutType readoutType_from_int(int int_type);
 
-DetectorType detectorType_from_name(const std::string & name);
-std::string detectorType_name(DetectorType);
-ReadoutType readoutType_from_name(const std::string & name);
-std::string readoutType_name(ReadoutType);
+RL_API DetectorType detectorType_from_name(const std::string & name);
+RL_API ReadoutType readoutType_from_name(const std::string & name);
+RL_API std::string detectorType_name(DetectorType);
+RL_API std::string readoutType_name(ReadoutType);
 //
 //DetectorType detectorType_from_name(std::string && name);
 //ReadoutType readoutType_from_name(std::string && name);

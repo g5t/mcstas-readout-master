@@ -124,7 +124,9 @@ public:
     // but should chunk file operations to avoid too much disk IO?
     HighFive::DataSetCreateProps props;
     props.add(HighFive::Chunking(std::vector<hsize_t>{100}));
-    dataset = file.value().createDataSet(dataset_name, dataspace, datatype(), props);
+    auto dt = datatype();
+    dt.commit(file.value(), readoutType_name(readoutType_from_detectorType(Type)));
+    dataset = file.value().createDataSet(dataset_name, dataspace, dt, props);
     // Assign useful information as attributes:
     /* FIXME C++20 has char8_t but C++17 does not, so these strings _might_ already be chars
      *       instead of unsigned chars. If that's the case this lambda is a non-op.

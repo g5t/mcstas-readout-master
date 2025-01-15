@@ -25,6 +25,7 @@ class Reader{
   std::string filename;
   std::optional<HighFive::File> file;
   std::optional<HighFive::DataSet> dataset;
+  std::optional<HighFive::DataType> datatype;
   DetectorType detector{DetectorType::Reserved};
   ReadoutType readout{ReadoutType::CAEN};
 public:
@@ -75,6 +76,11 @@ public:
       dataset = std::nullopt;
       return;
     }
+    // now we should be able to retrieve the datatype used to create the dataset
+    // FIXME if the name of the datatype was not the string name of the ReadoutType we could do this earlier
+    auto datatype_name = readoutType_name(readout);
+    datatype = file->getDataType(datatype_name);
+    std::cout << "We know the datatype id:" << datatype->getId() << " and name " << datatype->string() << "\n";
     if (auto shape = dataset->getDimensions(); shape.size() != 1){
       std::stringstream s;
       s << "The dataset is expected to be 1-D not " << shape.size();
@@ -92,9 +98,11 @@ public:
     if (readout != ReadoutType::CAEN){ throw std::runtime_error("Non CAEN readout type"); }
     if (index >= size()) { throw std::runtime_error("Out of bounds event requested");}
     if (index + count > size()) { throw std::runtime_error("Out of bounds event requested");}
-    std::vector<CAEN_event> event{};
-    dataset->select({index}, {count}).read(event);
+    auto dt = HighFive::create_datatype<CAEN_event>();
+    std::vector<CAEN_event> event(count);
+    dataset->select({index}, {count}).read_raw(event.data(), datatype.value());
     return event;
+//    return dataset->select({index}, {count}).read<std::vector<CAEN_event>>();
   }
   RL_API auto get_TTLMonitor(size_t index, size_t count) const {
     if (readout != ReadoutType::TTLMonitor){ throw std::runtime_error("Non TTLMonitor readout type"); }
