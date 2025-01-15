@@ -37,32 +37,6 @@ ReadoutType readoutType_from_int(const int int_type) {
   return readoutType_from_detectorType(detectorType_from_int(int_type));
 }
 
-//
-//HighFive::EnumType<DetectorType> create_detector_enum_type(){
-//  return {
-//      {"TTLMonitor", DetectorType::TTLMonitor},
-//      {"LOKI", DetectorType::LOKI},
-//      {"BIFROST", DetectorType::MIRACLES},
-//      {"CSPEC", DetectorType::CSPEC},
-//      {"NMX", DetectorType::NMX},
-//      {"FREIA", DetectorType::FREIA},
-//      {"TREX", DetectorType::TREX},
-//      {"DREAM", DetectorType::DREAM},
-//      {"MAGIC", DetectorType::MAGIC},
-//  };
-//}
-//
-//HighFive::EnumType<ReadoutType> create_readout_enum_type() {
-//  return {
-//      {"TTLMonitor", ReadoutType::TTLMonitor},
-//      {"CAEN", ReadoutType::CAEN},
-//      {"VMM3", ReadoutType::VMM3},
-//      {"DREAM", ReadoutType::DREAM},
-//      {"MAGIC", ReadoutType::MAGIC},
-//  };
-//}
-
-
 std::string detectorType_name(DetectorType dt){
   switch (dt) {
     case DetectorType::TTLMonitor: return "DetectorType::TTLMonitor";

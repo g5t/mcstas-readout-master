@@ -56,6 +56,3 @@ RL_API DetectorType detectorType_from_name(const std::string & name);
 RL_API ReadoutType readoutType_from_name(const std::string & name);
 RL_API std::string detectorType_name(DetectorType);
 RL_API std::string readoutType_name(ReadoutType);
-//
-//DetectorType detectorType_from_name(std::string && name);
-//ReadoutType readoutType_from_name(std::string && name);
