@@ -8,16 +8,11 @@ list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_LIST_DIR}/cmake")
 set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/cmake/conan_provider.cmake")
 
 # Read the version of readout
-include(checkgit)
-checkGitSetup(READOUT) # defines/creates version.hpp; and library 'git_version'
+include(check)
+checkSetup(READOUT) # generates version.hpp and adds the generated directory as a target include directory
 # So that we can print it to the console along with the specified build type
-message(STATUS "Build readout v${READOUT_VERSION} (e.g., ${READOUT_SAFE_VERSION}) with type ${CMAKE_BUILD_TYPE}")
-
-if ( "x${VERSION}" STREQUAL "x" )
-    set(VERSION ${READOUT_SAFE_VERSION})
-endif()
-
-project(mccode_readout LANGUAGES CXX VERSION "${VERSION}")
+message(STATUS "Build readout v${READOUT_VERSION} with type ${CMAKE_BUILD_TYPE}")
+project(mccode_readout LANGUAGES C CXX VERSION "${READOUT_VERSION}")
 
 set(READOUT_LIBRARY_TARGET readout)
 set(READOUT_REPLAY_BINARY replay)
@@ -26,6 +21,7 @@ SET(READOUT_LIB_DESTINATION lib)
 SET(READOUT_BIN_DESTINATION bin)
 SET(READOUT_INCLUDE_DESTINATION include)
 set(READOUT_TESTER_TARGET readout_tester)
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -117,7 +113,7 @@ add_subdirectory(test) # sources for the testing binary
 
 list(APPEND CXX_TARGETS ${LIB_TARGETS})
 foreach(CXX_TARGET IN LISTS CXX_TARGETS)
-    addGitVersion(${CXX_TARGET})
+    addCheckDependency(${CXX_TARGET})
 endforeach()
 
 include(readout-hdf5)
