@@ -15,20 +15,19 @@ set(post_configure_file ${gen_dir}/version.hpp)
 
 function(checkVersion version)
   execute_process(
-          COMMAND ${Python3_EXECUTABLE} ${src_dir}/version.py ${src_dir} ${gen_dir}
+          COMMAND ${Python3_EXECUTABLE} ${CURRENT_LIST_DIR}/version.py ${src_dir} ${gen_dir}
           OUTPUT_VARIABLE returned_version
           OUTPUT_STRIP_TRAILING_WHITESPACE
           ECHO_ERROR_VARIABLE
           RESULT_VARIABLE result
   )
-  if (NOT ${result} EQUAL 0)
-    message(DEBUG "${Python3_EXECUTABLE} ${src_dir}/version.py ${src_dir} ${gen_dir}")
-    message(AUTHOR_WARNING "Unable to discover git repository version, using fall-back VERSION file")
-    file(STRINGS ${CURRENT_LIST_DIR}/VERSION version_file_contents)
-    list(GET version_file_contents 0 returned_version)
-  else()
-    file(WRITE ${CURRENT_LIST_DIR}/VERSION "${returned_version}")
-  endif()
+#  if (NOT ${result} EQUAL 0)
+#    message(AUTHOR_WARNING "Unable to discover git repository version, using fall-back VERSION file")
+#    file(STRINGS ${CURRENT_LIST_DIR}/VERSION version_file_contents)
+#    list(GET version_file_contents 0 returned_version)
+#  else()
+#    file(WRITE ${CURRENT_LIST_DIR}/VERSION "${returned_version}")
+#  endif()
   set(${version} ${returned_version} PARENT_SCOPE)
 endfunction()
 

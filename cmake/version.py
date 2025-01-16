@@ -9,21 +9,39 @@ def intable(x):
     return True
 
 
+def semver_groups(s):
+    import re
+    r = re.compile(r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$")
+    if m := r.match(s):
+        d = m.groupdict()
+        return d
+    return None
+
+
 def git_run(args, default=None, cwd=None):
     from subprocess import run
     res = run(args, cwd=cwd, capture_output=True, text=True)
-    if res.returncode or 1:
-        import sys
-        print(f"Failed running `{' '.join(args)}` with output\n\n{res.stdout}\nand error\n\n{res.stderr}", file=sys.stderr)
     return default if res.returncode else res.stdout.strip()
+
+
+def get_version(root: Path):
+    file = Path(__file__).parent.joinpath('VERSION')
+    fallback = file.read_text()
+    version = git_run(['git', 'describe', '--long'], cwd=root, default=fallback).split('v', maxsplit=1)[-1]
+    d = semver_groups(version)
+    if not d:
+        # warn about a non-semantic-version value?
+        d = semver_groups(fallback)
+        version = fallback
+    elif version != fallback:
+        file.write_text(version)
+    return version, f"{d['major']}.{d['minor']}.{d['patch']}"
 
 
 def git_info(root: Path):
     sha = git_run(['git', 'rev-parse', 'HEAD'], cwd=root, default='0')
     branch = git_run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], cwd=root, default='UNKNOWN')
-    version = git_run(['git', 'describe', '--long'], cwd=root, default='v0.0.0-unknown').split('v', maxsplit=1)[-1]
-    short_version = version.split('-', maxsplit=1)[0]
-    return sha, branch, version, short_version
+    return sha, branch
 
 
 def version_header(root: Path, filename: Path):
@@ -31,7 +49,8 @@ def version_header(root: Path, filename: Path):
     from datetime import datetime
     import platform
 
-    sha, branch, full_v, safe_v = git_info(root)
+    sha, branch= git_info(root)
+    full_v, safe_v = get_version(root)
     time_str = datetime.now().isoformat(timespec='minutes')
     hostname = platform.node()
 
@@ -64,7 +83,7 @@ def version_header(root: Path, filename: Path):
     print(safe_v)
 
 
-if __name__ == '__main__':
+def main():
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('repository')
@@ -73,3 +92,5 @@ if __name__ == '__main__':
     version_header(Path(args.repository), Path(args.directory).joinpath('version.hpp'))
 
 
+if __name__ == '__main__':
+    main()
