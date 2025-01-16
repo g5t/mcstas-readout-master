@@ -12,13 +12,16 @@ def intable(x):
 def git_run(args, default=None, cwd=None):
     from subprocess import run
     res = run(args, cwd=cwd, capture_output=True, text=True)
+    if res.returncode or 1:
+        import sys
+        print(f"Failed running `{' '.join(args)}` with output\n\n{res.stdout}\nand error\n\n{res.stderr}", file=sys.stderr)
     return default if res.returncode else res.stdout.strip()
 
 
 def git_info(root: Path):
     sha = git_run(['git', 'rev-parse', 'HEAD'], cwd=root, default='0')
     branch = git_run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], cwd=root, default='UNKNOWN')
-    version = git_run(['git', 'describe', '--long'], cwd=root, default='v0.0.0+unknown').split('v', maxsplit=1)[-1]
+    version = git_run(['git', 'describe', '--long'], cwd=root, default='v0.0.0-unknown').split('v', maxsplit=1)[-1]
     short_version = version.split('-', maxsplit=1)[0]
     return sha, branch, version, short_version
 

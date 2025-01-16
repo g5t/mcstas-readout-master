@@ -18,6 +18,7 @@ function(checkVersion version)
           COMMAND ${Python3_EXECUTABLE} ${src_dir}/version.py ${src_dir} ${gen_dir}
           OUTPUT_VARIABLE returned_version
           OUTPUT_STRIP_TRAILING_WHITESPACE
+          ECHO_ERROR_VARIABLE
           RESULT_VARIABLE result
   )
   if (NOT ${result} EQUAL 0)
