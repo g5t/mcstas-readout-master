@@ -33,8 +33,9 @@ def get_version(root: Path):
         # warn about a non-semantic-version value?
         d = semver_groups(fallback)
         version = fallback
-    elif version != fallback:
-        file.write_text(version)
+    safe = f"{d['major']}.{d['minor']}.{d['patch']}"
+    if safe != fallback:
+        file.write_text(safe)
     return version, f"{d['major']}.{d['minor']}.{d['patch']}"
 
 
