@@ -11,6 +11,8 @@ string d = 0,
 string tof = "t",
 string ip = 0,
 int fen_value=0,
+int a_value=0,
+int b_value=0,
 int c_value=0;
 int d_value=0;
 int port = 9000,
@@ -64,6 +66,8 @@ CAEN_readout_t readout_data;
 readout_t* readout_ptr;
 int p_or_pp;
 int fen_present;
+int a_present;
+int b_present;
 int c_present;
 int d_present;
 %}
@@ -83,6 +87,8 @@ if (!broadcast) readout_disable_network(readout_ptr);
 if ((filename != NULL) && (filename[0] != '\0')) readout_dump_to(filename);
 
 fen_present = ((fen != NULL) && (fen[0] != '\0')) ? 1 : 0;
+a_present = ((a != NULL) && (a[0] != '\0')) ? 1 : 0;
+b_present = ((b != NULL) && (b[0] != '\0')) ? 1 : 0;
 c_present = ((c != NULL) && (c[0] != '\0')) ? 1 : 0;
 d_present = ((d != NULL) && (d[0] != '\0')) ? 1 : 0;
 // Make sure the provided property names are accessible -- no error checking later
@@ -92,13 +98,21 @@ if (fen_present){
     particle_getvar(_particle,  fen, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP,  fen);
 }
 particle_getvar(_particle, tube, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP, tube);
-particle_getvar(_particle,    a, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP,    a);
-particle_getvar(_particle,    b, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP,    b);
+if (a_present){
+  particle_getvar(_particle, a, &failure);
+  if (failure) readout_caen_error(NAME_CURRENT_COMP, a);
+}
+if (b_present){
+  particle_getvar(_particle, b, &failure);
+  if (failure) readout_caen_error(NAME_CURRENT_COMP, b);
+}
 if (c_present){
-    particle_getvar(_particle, c, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP, c);
+  particle_getvar(_particle, c, &failure);
+  if (failure) readout_caen_error(NAME_CURRENT_COMP, c);
 }
 if (d_present){
-    particle_getvar(_particle, d, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP, d);
+  particle_getvar(_particle, d, &failure);
+  if (failure) readout_caen_error(NAME_CURRENT_COMP, d);
 }
 particle_getvar(_particle,  tof, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP,  tof);
 
@@ -123,19 +137,19 @@ if (event_count) {
   int_ring = readout_caen_particle_getvar_int(_particle, ring);
   int_fen = fen_present ? readout_caen_particle_getvar_int(_particle, fen) : fen_value;
   int_tube = readout_caen_particle_getvar_int(_particle, tube);
-  int_A = readout_caen_particle_getvar_int(_particle, a);
-  int_B = readout_caen_particle_getvar_int(_particle, b)
-  int_C = c_present  ? readout_caen_getvar_int(_particle, c) : c_value;
-  int_D = d_present  ? readout_caen_getvar_int(_particle, d) : d_value;
+  int_A = a_present ? readout_caen_particle_getvar_int(_particle, a) : a_value;
+  int_B = b_present ? readout_caen_particle_getvar_int(_particle, b) : b_value;
+  int_C = c_present ? readout_caen_particle_getvar_int(_particle, c) : c_value;
+  int_D = d_present ? readout_caen_particle_getvar_int(_particle, d) : d_value;
   double_tof = particle_getvar(_particle, tof, 0);
 } else {
   int_ring = (int)(rand01() * 3);
   int_tube = (int)(rand01() * 15);
   int_fen = fen_value;
-  int_A = 100 + (int)(rand01() * 1024);
-  int_B = 100 + (int)(rand01() * 1024);
-  int_C = c_present  ? 100 + (int)(rand01() * 1024) : c_value;
-  int_D = d_present  ? 100 + (int)(rand01() * 1024) : d_value;
+  int_A = a_present ? 100 + (int)(rand01() * 1024) : a_value;
+  int_B = b_present ? 100 + (int)(rand01() * 1024) : b_value;
+  int_C = c_present ? 100 + (int)(rand01() * 1024) : c_value;
+  int_D = d_present ? 100 + (int)(rand01() * 1024) : d_value;
   double_tof = rand01() / pulse_rate;
 }
 
