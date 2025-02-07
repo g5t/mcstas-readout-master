@@ -16,6 +16,7 @@ project(mccode_readout LANGUAGES C CXX VERSION "${READOUT_VERSION}")
 
 set(READOUT_LIBRARY_TARGET readout)
 set(READOUT_REPLAY_BINARY replay)
+set(READOUT_CONFIG_BINARY readout-config)
 set(READOUT_SINGLE_HEADER readout.h) # must match template file in project root
 SET(READOUT_LIB_DESTINATION lib)
 SET(READOUT_BIN_DESTINATION bin)
@@ -87,17 +88,23 @@ list(APPEND CXX_TARGETS ${READOUT_REPLAY_BINARY} ${READOUT_TESTER_TARGET})
 # target for C++ shared library
 add_library(${READOUT_LIBRARY_TARGET} SHARED)
 list(APPEND LIB_TARGETS ${READOUT_LIBRARY_TARGET})
-#set(Readout_LIBNAME "${CMAKE_SHARED_LIBRARY_PREFIX}Readout${CMAKE_SHARED_LIBRARY_SUFFIX}")
-set_target_properties(${READOUT_LIBRARY_TARGET} PROPERTIES PUBLIC_HEADER Readout.h)
+set(Readout_LIBNAME "${CMAKE_SHARED_LIBRARY_PREFIX}${READOUT_LIBRARY_TARGET}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+set_target_properties(${READOUT_LIBRARY_TARGET} PROPERTIES PUBLIC_HEADER lib/Readout.h)
 set_target_properties(${READOUT_LIBRARY_TARGET} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
 add_library(READOUT::${READOUT_LIBRARY_TARGET} ALIAS ${READOUT_LIBRARY_TARGET}) # always alias namespaces locally
 
 # target for file-replay CLI utility
 list(APPEND BIN_TARGETS ${READOUT_REPLAY_BINARY})
-add_executable(${READOUT_REPLAY_BINARY} EXCLUDE_FROM_ALL)
+add_executable(${READOUT_REPLAY_BINARY})
 target_include_directories(${READOUT_REPLAY_BINARY} PRIVATE ${cargs_INCLUDE_DIR})
 target_link_libraries(${READOUT_REPLAY_BINARY} PRIVATE ${cargs_LIBRARIES} ${READOUT_LIBRARY_TARGET})
+
+# target for config tool CLI utility
+list(APPEND CONFIG_BIN_TARGETS ${READOUT_CONFIG_BINARY})
+add_executable(${READOUT_CONFIG_BINARY})
+target_include_directories(${READOUT_CONFIG_BINARY} PRIVATE ${cargs_INCLUDE_DIR})
+target_link_libraries(${READOUT_CONFIG_BINARY} PRIVATE ${cargs_LIBRARIES})
 
 # target for testing library functionality
 add_executable(${READOUT_TESTER_TARGET})
@@ -118,7 +125,7 @@ endforeach()
 
 include(readout-hdf5)
 
-install(TARGETS ${READOUT_LIBRARY_TARGET} EXPORT ReadoutTargets
+install(TARGETS ${READOUT_LIBRARY_TARGET} ${READOUT_REPLAY_BINARY} ${READOUT_CONFIG_BINARY} EXPORT ReadoutTargets
         RUNTIME DESTINATION ${Readout_BINDIR}
         LIBRARY DESTINATION ${Readout_LIBDIR}
         ARCHIVE DESTINATION ${Readout_LIBDIR}
@@ -131,10 +138,8 @@ configure_file("${PROJECT_SOURCE_DIR}/cmake/ReadoutConfig.cmake.in" "${PROJECT_B
 install(FILES "${PROJECT_BINARY_DIR}/ReadoutConfigVersion.cmake" "${PROJECT_BINARY_DIR}/ReadoutConfig.cmake"
         DESTINATION ${Readout_CMAKEDIR} )
 
-configure_file( "${PROJECT_SOURCE_DIR}/cmake/readout-config.in" "${PROJECT_BINARY_DIR}/readout-config" @ONLY )
-install( PROGRAMS "${PROJECT_BINARY_DIR}/readout-config" DESTINATION ${Readout_BINDIR} )
+configure_file("${PROJECT_SOURCE_DIR}/cmake/readout_config.h.in" "${CMAKE_BINARY_DIR}/readout_config.h" @ONLY)
 
 # Copy the component file to the include directory too
 file(GLOB ALL_COMPONENTS "${CMAKE_CURRENT_SOURCE_DIR}/components/*.comp")
 install(FILES ${ALL_COMPONENTS} DESTINATION ${Readout_DATADIR})
-

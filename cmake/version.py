@@ -60,17 +60,17 @@ def version_header(root: Path, filename: Path):
     //! \file
     namespace libreadout::version{{
         //! `project` git repository revision information at build time
-        auto constexpr git_revision = u8"{sha}";
+        auto constexpr git_revision = "{sha}";
         //! `project` git repository branch at build time
-        auto constexpr git_branch = u8"{branch}";
+        auto constexpr git_branch = "{branch}";
         //! build date and time in YYYY-MM-DDThh:mm format
-        auto constexpr build_datetime = u8"{time_str}";
+        auto constexpr build_datetime = "{time_str}";
         //! `project` version
-        auto constexpr version_number = u8"{safe_v}";
+        auto constexpr version_number = "{safe_v}";
         //! hostname of the build machine
-        auto constexpr build_hostname = u8"{hostname}";
+        auto constexpr build_hostname = "{hostname}";
         //! version with metadata included
-        auto constexpr meta_version = u8"{full_v}";
+        auto constexpr meta_version = "{full_v}";
     }}
     """)
 

@@ -43,7 +43,7 @@ pages/
 cmake-build*
 
 # Built version header
-src/version.hpp
+*/version.hpp
 
 # Pipenv environment files
 Pipfile
