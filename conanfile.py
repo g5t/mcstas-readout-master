@@ -2,7 +2,7 @@ from conan import ConanFile
 from conan.tools.cmake import cmake_layout
 
 
-class PolystarRecipe(ConanFile):
+class ReadoutRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeToolchain", "CMakeDeps"
     default_options = {
