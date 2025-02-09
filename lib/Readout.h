@@ -96,6 +96,9 @@ RL_API int readout_verbose(readout_t* r_ptr, int);
 // Control file output for the Readout object
 RL_API void readout_dump_to(readout_t * r_ptr, const char * filename);
 
+// Combine multiple files into one for the Readout object -- each should have come from an equivalent Readout object
+RL_API void readout_merge_files(const char * out_filename, const char ** in_filenames, size_t count);
+
 // Allow disabling and enabling network communication (on by default)
 RL_API void readout_disable_network(readout_t * r_ptr);
 RL_API void readout_enable_network(readout_t * r_ptr);

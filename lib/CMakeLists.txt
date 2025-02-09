@@ -1,5 +1,6 @@
 list(APPEND LIB_SOURCES
         Readout.cpp
+        Readout_merge.cpp
         ReadoutClass.cpp
         enums.cpp
         hdf_interface.cpp

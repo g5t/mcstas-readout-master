@@ -19,6 +19,7 @@
 #include "hdf_interface.h"
 #include "version.hpp"
 #include "efu_time.h"
+#include "writer.h"
 
 class Readout {
 public:
@@ -58,17 +59,6 @@ public:
   void addReadout(uint8_t Ring, uint8_t FEN, efu_time t, const DREAM_readout_t * data);
   void addReadout(uint8_t Ring, uint8_t FEN, efu_time t, const VMM3_readout_t * data);
 
-  void saveReadout(uint8_t Ring, uint8_t FEN, double tof, double weight, const void * data);
-  template<class T> void saveReadout(T data){
-    if (file.has_value() and dataset.has_value()) {
-      auto & ds = dataset.value();
-      // the dataset should be 1-D ... hopefully that's true
-      auto pos = ds.getDimensions().back();
-      auto size = pos + 1;
-      ds.resize({size});
-      ds.select({pos}, {1}).write(data); // select(offset, count)
-    }
-  }
 
   // send the current data buffer
   int send();
@@ -116,29 +106,7 @@ public:
   }
   int verbose(const int v){verbosity = v; return verbosity;}
 
-  void dump_to(const std::string & filename, const std::string & dataset_name = "events"){
-    // Do we need to keep this reference ot the file?
-    file = HighFive::File(filename, HighFive::File::OpenOrCreate);
-    // we want to output an events list which can grow forever
-    auto dataspace = HighFive::DataSpace({0}, {HighFive::DataSpace::UNLIMITED});
-    // but should chunk file operations to avoid too much disk IO?
-    HighFive::DataSetCreateProps props;
-    props.add(HighFive::Chunking(std::vector<hsize_t>{100}));
-    auto dt = datatype();
-    dt.commit(file.value(), readoutType_name(readoutType_from_detectorType(Type)));
-    dataset = file.value().createDataSet(dataset_name, dataspace, dt, props);
-    // Assign useful information as attributes:
-    /* FIXME C++20 has char8_t but C++17 does not, so these strings _might_ already be chars
-     *       instead of unsigned chars. If that's the case this lambda is a non-op.
-     */
-    auto u8str = [](const auto * p){return std::string(reinterpret_cast<const char *>(p));};
-    file->createAttribute<std::string>("program", "libreadout");
-    file->createAttribute<std::string>("version", u8str(libreadout::version::version_number));
-    file->createAttribute<std::string>("revision", u8str(libreadout::version::git_revision));
-    file->createAttribute<std::string>("events", dataset_name);
-    dataset->createAttribute("detector", detectorType_name(Type));
-    dataset->createAttribute("readout", readoutType_name(readoutType_from_detectorType(Type)));
-  }
+  void dump_to(const std::string & filename, const std::string & dataset_name = "events");
 
   void enable_network() {network = true;}
   void disable_network() {network = false;}
@@ -181,8 +149,7 @@ private:
   int tcp_port{8888};
   int verbosity{0};
 
-  std::optional<HighFive::File> file{std::nullopt};
-  std::optional<HighFive::DataSet> dataset{std::nullopt};
+  std::optional<Writer> writer{std::nullopt};
   bool network{true};
   efu_time period, time;
   cluon::UDPSender sender;

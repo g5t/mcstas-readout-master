@@ -48,9 +48,9 @@ enum class ReadoutType {
   MAGIC,
 };
 
-DetectorType detectorType_from_int(int);
-ReadoutType readoutType_from_detectorType(DetectorType type);
-ReadoutType readoutType_from_int(int int_type);
+RL_API DetectorType detectorType_from_int(int);
+RL_API ReadoutType readoutType_from_detectorType(DetectorType type);
+RL_API ReadoutType readoutType_from_int(int int_type);
 
 RL_API DetectorType detectorType_from_name(const std::string & name);
 RL_API ReadoutType readoutType_from_name(const std::string & name);

@@ -128,9 +128,10 @@ void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const efu_time t
   hp->TotalLength = DataSize;
 }
 
+
 void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const double tof, const double weight, const void *data) {
   // store the readout to file if requested
-  if (dataset.has_value()) saveReadout(Ring, FEN, tof, weight, data);
+  if (writer.has_value()) writer->saveReadout(Ring, FEN, tof, weight, data);
   // provided time-of-flight plus the current pulse time
   auto t = efu_time(tof) + time;
   // TODO implement t = (tof % period) + time -- such that we have realistic reference times
@@ -150,20 +151,11 @@ void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const double tof
   }
 }
 
-void Readout::saveReadout(const uint8_t Ring, const uint8_t FEN, const double tof, const double weight, const void *data) {
-  if (!dataset.has_value()){
-    if (verbosity > 1) std::cout << "No readout saved to file due to no dataset available" << std::endl;
-    return;
-  }
-  const auto type = readoutType_from_detectorType(Type);
-  switch (type) {
-    case ReadoutType::CAEN: return saveReadout(CAEN_event(Ring, FEN, tof, weight, static_cast<const CAEN_readout_t*>(data)));
-    case ReadoutType::TTLMonitor: return saveReadout(TTLMonitor_event(Ring, FEN, tof, weight, static_cast<const TTLMonitor_readout_t*>(data)));
-    case ReadoutType::DREAM: return saveReadout(DREAM_event(Ring, FEN, tof, weight, static_cast<const DREAM_readout_t*>(data)));
-    case ReadoutType::VMM3: return saveReadout(VMM3_event(Ring, FEN, tof, weight, static_cast<const VMM3_readout_t*>(data)));
-    default: throw std::runtime_error("This readout data type not implemented yet!");
-  }
+
+void Readout::dump_to(const std::string & filename, const std::string & dataset_name){
+  writer = Writer(filename, Type, readoutType_from_detectorType(Type), dataset_name);
 }
+
 
 int Readout::send() {
   if (!network){
