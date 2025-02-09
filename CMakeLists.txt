@@ -20,7 +20,7 @@ message(STATUS "Build readout v${READOUT_VERSION} with type ${CMAKE_BUILD_TYPE}"
 project(mccode_readout LANGUAGES C CXX VERSION "${READOUT_VERSION}")
 
 set(READOUT_LIBRARY_TARGET readout)
-set(READOUT_REPLAY_BINARY replay)
+set(READOUT_REPLAY_BINARY readout-replay)
 set(READOUT_CONFIG_BINARY readout-config)
 set(READOUT_SINGLE_HEADER readout.h) # must match template file in project root
 SET(READOUT_LIB_DESTINATION lib)
@@ -94,6 +94,7 @@ if (READOUT_TESTS)
     list(APPEND CXX_TARGETS ${READOUT_TESTER_BINARY})
 endif()
 
+
 # target for C++ shared library
 add_library(${READOUT_LIBRARY_TARGET} SHARED)
 list(APPEND LIB_TARGETS ${READOUT_LIBRARY_TARGET})
@@ -118,10 +119,13 @@ target_link_libraries(${READOUT_CONFIG_BINARY} PRIVATE ${cargs_LIBRARIES})
 if (READOUT_TESTS)
     # Catch2 is used for testing
     find_package(Catch2 REQUIRED)
+    # Threads are used in the library tests
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
     # target for testing library functionality
     add_executable(${READOUT_TESTER_TARGET})
     # target_include_directories(${READOUT_TESTER_TARGET} PRIVATE lib)
-    target_link_libraries(${READOUT_TESTER_TARGET} PRIVATE Catch2::Catch2WithMain READOUT::${READOUT_LIBRARY_TARGET})
+    target_link_libraries(${READOUT_TESTER_TARGET} PRIVATE Catch2::Catch2WithMain Threads::Threads READOUT::${READOUT_LIBRARY_TARGET})
     include(CTest)
     include(Catch)
     catch_discover_tests(${READOUT_TESTER_TARGET})
