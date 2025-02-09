@@ -1,8 +1,8 @@
 #include <cargs.h>
 #include <iostream>
-#include <filesystem>
 #include <cstring>
 #include "readout_config.h"
+#include "helper.h"
 
 
 static struct cag_option options[] = {
@@ -57,25 +57,6 @@ const char * installation_info(const char * choice) {
   if (strcmp(choice, "ldflags") == 0) return libreadout::config::ldflags;
   if (strcmp(choice, "cflags") == 0) return libreadout::config::cflags;
   return nullptr;
-}
-
-#ifdef _WIN32
-std::filesystem::path executable_path(){
-  char buffer[MAX_PATH];
-  GetModuleFileName(nullptr, buffer, MAX_PATH);
-  return std::filesystem::path(buffer);
-}
-#else
-std::filesystem::path executable_path(){
-  std::filesystem::path result("/proc/self/exe");
-  return std::filesystem::canonical(result);
-}
-#endif
-
-
-std::filesystem::path installation_path(const std::string & relative) {
-  auto cwd = executable_path().parent_path();
-  return std::filesystem::weakly_canonical(cwd / relative);
 }
 
 

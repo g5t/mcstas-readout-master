@@ -1,5 +1,6 @@
 list(APPEND BIN_SOURCES
         main.cpp
+        helper.cpp
 )
 
 foreach(BIN_SOURCE IN LISTS BIN_SOURCES)
