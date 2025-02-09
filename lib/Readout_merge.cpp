@@ -9,6 +9,9 @@ extern "C" {
 #endif
 
   void readout_merge_files(const char * out_filename, const char ** in_filenames, const size_t count){
+    if (count < 1){
+      throw std::runtime_error("No input files provided");
+    }
     DetectorType detector;
     ReadoutType readout;
     for (size_t i=0; i<count; i++){

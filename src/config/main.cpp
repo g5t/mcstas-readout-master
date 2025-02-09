@@ -1,42 +1,24 @@
-#include <cargs.h>
 #include <iostream>
 #include <cstring>
+#include "args.hxx"
 #include "readout_config.h"
 #include "helper.h"
 
 
-static struct cag_option options[] = {
-  {.identifier='v',
-   .access_letters="v",
-   .access_name="version",
-   .value_name=nullptr,
-   .description="show version"
-  },
-  {.identifier='i',
-   .access_letters="i",
-   .access_name="intversion",
-   .value_name=nullptr,
-   .description="show version encoded into single integer number"
-  },
-  {.identifier='s',
-   .access_letters=nullptr,
-   .access_name="show",
-   .value_name="{libdir includedir compdir libname bindir ldflags cflags}",
-   .description="show requested information about installation"
-  },
-  {.identifier='h',
-   .access_letters="h",
-   .access_name="help",
-   .value_name=nullptr,
-   .description="show this help"
-  },
+enum class ConfigShow {
+  LIBDIR,
+  INCLUDEDIR,
+  COMPDIR,
+  LIBNAME,
+  VERSION,
+  BINDIR,
+  LDFLAGS,
+  CFLAGS
 };
-
 
 long long version_integer(const char * version){
   long long result = 0;
   for (int i=0; i<3; ++i){
-//    result <<= 16;
     result *= 100;
     result += std::stoi(version);
     version = strchr(version, '.');
@@ -47,39 +29,41 @@ long long version_integer(const char * version){
 }
 
 
-const char * installation_info(const char * choice) {
-  if (strcmp(choice, "libdir") == 0) return libreadout::config::libdir;
-  if (strcmp(choice, "includedir") == 0) return libreadout::config::includedir;
-  if (strcmp(choice, "compdir") == 0) return libreadout::config::compdir;
-  if (strcmp(choice, "libname") == 0) return libreadout::config::libname;
-  if (strcmp(choice, "version") == 0) return libreadout::config::version;
-  if (strcmp(choice, "bindir") == 0) return libreadout::config::bindir;
-  if (strcmp(choice, "ldflags") == 0) return libreadout::config::ldflags;
-  if (strcmp(choice, "cflags") == 0) return libreadout::config::cflags;
+const char * installation_info(const ConfigShow choice) {
+  switch (choice) {
+    case ConfigShow::LIBDIR: return libreadout::config::libdir;
+    case ConfigShow::INCLUDEDIR: return libreadout::config::includedir;
+    case ConfigShow::COMPDIR: return libreadout::config::compdir;
+    case ConfigShow::LIBNAME: return libreadout::config::libname;
+    case ConfigShow::VERSION: return libreadout::config::version;
+    case ConfigShow::BINDIR: return libreadout::config::bindir;
+    case ConfigShow::LDFLAGS: return libreadout::config::ldflags;
+    case ConfigShow::CFLAGS: return libreadout::config::cflags;
+  }
   return nullptr;
 }
 
 
-std::string lookup_choice(const char * choice) {
+std::string lookup_choice(const ConfigShow choice) {
   auto info = installation_info(choice);
   if (info == nullptr) return "";
-  if (strcmp(choice, "libname") == 0 || strcmp(choice, "version") == 0) return info;
-  if (strcmp(choice, "ldflags") == 0) {
+  if (ConfigShow::LIBNAME == choice || ConfigShow::VERSION == choice) return info;
+  if (ConfigShow::LDFLAGS == choice) {
     std::string result = info;
-    auto replacment = lookup_choice("libdir");
+    auto replacement = lookup_choice(ConfigShow::LIBDIR);
     while (result.find("<LIBDIR>") != std::string::npos){
       auto pos = result.find("<LIBDIR>");
-      auto new_str = result.substr(0, pos) + replacment + result.substr(pos+8);
+      auto new_str = result.substr(0, pos) + replacement + result.substr(pos+8);
       result = new_str;
     }
     return result;
   }
-  if (strcmp(choice, "cflags") == 0) {
+  if (ConfigShow::CFLAGS == choice){
     std::string result = info;
-    auto replacment = lookup_choice("includedir");
+    auto replacement = lookup_choice(ConfigShow::INCLUDEDIR);
     while (result.find("<INCLUDEDIR>") != std::string::npos){
       auto pos = result.find("<INCLUDEDIR>");
-      auto new_str = result.substr(0, pos) + replacment + result.substr(pos+12);
+      auto new_str = result.substr(0, pos) + replacement + result.substr(pos+12);
       result = new_str;
     }
     return result;
@@ -88,41 +72,68 @@ std::string lookup_choice(const char * choice) {
 }
 
 
-int main(int argc, char * argv[]){
-  const char * choice{nullptr};
-  cag_option_context context;
-  cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
-  while (cag_option_fetch(&context)) {
-    switch (cag_option_get_identifier(&context)) {
-      case 'v': {
-        std::cout << libreadout::config::version << std::endl;
-        return EXIT_SUCCESS;
-      }
-      case 'i': {
-        auto version = libreadout::config::version;
-        std::cout << version_integer(version) << std::endl;
-        return EXIT_SUCCESS;
-      }
-      case 's': {
-        choice = cag_option_get_value(&context);
-        break;
-      }
-      case 'h':
-        std::cout << "Usage: readout-config [OPTIONS]" << std::endl;
-        std::cout << "Retrieve configuration information about the installed readout library"  << std::endl;
-        cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
-        return EXIT_SUCCESS;
-      case '?':
-        cag_option_print_error(&context, stdout);
-        break;
-    }
+
+struct ConfgShowReader
+{
+  void operator()(const std::string &name, const std::string &in_value, ConfigShow &destination)
+  {
+    auto value = in_value;
+    std::transform(value.begin(), value.end(), value.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+
+    if (value == "libdir") destination = ConfigShow::LIBDIR;
+    else if (value == "includedir") destination = ConfigShow::INCLUDEDIR;
+    else if (value == "compdir") destination = ConfigShow::COMPDIR;
+    else if (value == "libname") destination = ConfigShow::LIBNAME;
+    else if (value == "version") destination = ConfigShow::VERSION;
+    else if (value == "bindir") destination = ConfigShow::BINDIR;
+    else if (value == "ldflags") destination = ConfigShow::LDFLAGS;
+    else if (value == "cflags") destination = ConfigShow::CFLAGS;
+    else throw std::runtime_error("Invalid choice: " + in_value + " for " + name);
   }
-  if (choice == nullptr){
-    std::cout << "a choice is required!" << std::endl;
-    return EXIT_FAILURE;
+};
+
+
+int main(int argc, char * argv[]){
+  std::string choices{"libdir, includedir, compdir, libname, bindir, ldflags, cflags"};
+  args::ArgumentParser parser("Readout library configuration information",
+                              "Resolved paths are only valid if this binary is installed.");
+  args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
+  args::Flag version(parser, "version", "Print the library version", {'v', "version"});
+  args::Flag intversion(parser, "intversion", "Print the library version as an integer", {'i', "intversion"});
+  args::ValueFlag<ConfigShow, ConfgShowReader> choice(parser, "CHOICE", "Show requested information about installation CHOICE=["+choices+"]", {'s', "show"});
+
+  try
+  {
+    parser.ParseCLI(argc, argv);
+  }
+  catch (const args::Help&)
+  {
+    std::cout << parser;
+    return 0;
+  }
+  catch (const args::ParseError& e)
+  {
+    std::cerr << e.what() << std::endl;
+    std::cerr << parser;
+    return 1;
   }
 
-  std::cout << lookup_choice(choice) << std::endl;
+  if (version) {
+    std::cout << libreadout::config::version << std::endl;
+    return 0;
+  }
+  if (intversion) {
+    std::cout << version_integer(libreadout::config::version) << std::endl;
+    return 0;
+  }
+  if (choice && choice.Get() != ConfigShow::VERSION) {
+    std::cout << lookup_choice(choice.Get()) << std::endl;
+    return 0;
+  }
+
+  std::cout << parser << std::endl;
+  std::cout << "(Hint: select '-s' and one of the following choices: " << choices  << ")" << std::endl;
 
   return EXIT_SUCCESS;
 }

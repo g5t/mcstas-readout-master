@@ -5,7 +5,12 @@ cmake_policy(SET CMP0017 NEW) # Prefer cmake's own files for include/find_packag
 set(CMAKE_MACOSX_RPATH OFF)
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
-set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/cmake/conan_provider.cmake")
+set(READOUT_USE_CONAN ON CACHE BOOL "Use Conan to manage dependencies") # Set to OFF to use system libraries
+set(READOUT_TESTS ON CACHE BOOL "Build test binary")
+
+if (READOUT_USE_CONAN)
+    set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/cmake/conan_provider.cmake")
+endif()
 
 # Read the version of readout
 include(check)
@@ -79,11 +84,15 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # With GCC 10+ the interproceedural optmization only adds to compilation time without improving performance
 SET(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
 
-find_package(cargs REQUIRED)
-find_package(Catch2 REQUIRED)
+#
+## Cargs is used to help parse command line arguments in the CLI utilities
+#find_package(cargs REQUIRED)
 
 
-list(APPEND CXX_TARGETS ${READOUT_REPLAY_BINARY} ${READOUT_TESTER_TARGET})
+list(APPEND CXX_TARGETS ${READOUT_REPLAY_BINARY})
+if (READOUT_TESTS)
+    list(APPEND CXX_TARGETS ${READOUT_TESTER_BINARY})
+endif()
 
 # target for C++ shared library
 add_library(${READOUT_LIBRARY_TARGET} SHARED)
@@ -106,17 +115,24 @@ add_executable(${READOUT_CONFIG_BINARY})
 target_include_directories(${READOUT_CONFIG_BINARY} PRIVATE ${cargs_INCLUDE_DIR})
 target_link_libraries(${READOUT_CONFIG_BINARY} PRIVATE ${cargs_LIBRARIES})
 
-# target for testing library functionality
-add_executable(${READOUT_TESTER_TARGET})
-# target_include_directories(${READOUT_TESTER_TARGET} PRIVATE lib)
-target_link_libraries(${READOUT_TESTER_TARGET} PRIVATE Catch2::Catch2WithMain READOUT::${READOUT_LIBRARY_TARGET})
-include(CTest)
-include(Catch)
-catch_discover_tests(${READOUT_TESTER_TARGET})
+if (READOUT_TESTS)
+    # Catch2 is used for testing
+    find_package(Catch2 REQUIRED)
+    # target for testing library functionality
+    add_executable(${READOUT_TESTER_TARGET})
+    # target_include_directories(${READOUT_TESTER_TARGET} PRIVATE lib)
+    target_link_libraries(${READOUT_TESTER_TARGET} PRIVATE Catch2::Catch2WithMain READOUT::${READOUT_LIBRARY_TARGET})
+    include(CTest)
+    include(Catch)
+    catch_discover_tests(${READOUT_TESTER_TARGET})
+endif()
 
 add_subdirectory(lib)  # sources for libreadout
 add_subdirectory(src)  # sources for file interface in C++
-add_subdirectory(test) # sources for the testing binary
+
+if (READOUT_TESTS)
+    add_subdirectory(test) # sources for the testing binary
+endif()
 
 list(APPEND CXX_TARGETS ${LIB_TARGETS})
 foreach(CXX_TARGET IN LISTS CXX_TARGETS)

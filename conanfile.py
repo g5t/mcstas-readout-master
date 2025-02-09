@@ -18,7 +18,6 @@ class ReadoutRecipe(ConanFile):
     def requirements(self):
         self.requires("catch2/3.6.0")
         self.requires("highfive/2.10.0")
-        self.requires("cargs/1.2.0")
 
     def layout(self):
         cmake_layout(self)

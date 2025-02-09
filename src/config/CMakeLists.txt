@@ -10,5 +10,5 @@ endforeach()
 
 foreach(BIN_TARGET IN LISTS CONFIG_BIN_TARGETS)
     target_sources(${BIN_TARGET} PRIVATE ${BIN_SOURCES})
-    target_include_directories(${BIN_TARGET} PRIVATE ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_BINARY_DIR})
+    target_include_directories(${BIN_TARGET} PRIVATE ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_BINARY_DIR} ${ARGS_INCLUDE_DIR})
 endforeach()

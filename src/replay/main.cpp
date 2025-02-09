@@ -1,87 +1,67 @@
-#include <cargs.h>
 #include <iostream>
+#include "args.hxx"
 #include "reader.h"
 #include "replay.h"
 
-static struct cag_option options[] = {
-{.identifier='v', .access_letters="v", .access_name=nullptr, .value_name=nullptr, .description="verbose"},
-{.identifier='s', .access_letters="s", .access_name=nullptr, .value_name=nullptr, .description="sequential"},
-{.identifier='r', .access_letters="r", .access_name=nullptr, .value_name=nullptr, .description="random"},
-{.identifier='n', .access_letters="n", .access_name=nullptr, .value_name="COUNT", .description="Number of events to replay"},
-{.identifier='f', .access_letters="f", .access_name=nullptr, .value_name="FIRST", .description="First event to replay"},
-{.identifier='e', .access_letters="e", .access_name=nullptr, .value_name="EVERY", .description="Replay every EVERYth event"},
-//{.identifier='f', .access_letters="f", .access_name="file", .value_name="FILENAME", .description="Filename to replay"},
-{.identifier='a', .access_letters="a", .access_name="addr", .value_name="ADDR", .description="EFU IP address"},
-{.identifier='p', .access_letters="p", .access_name="port", .value_name="PORT", .description="EFU UDP port for accepting data"},
-{.identifier='h', .access_letters="h", .access_name="help", .value_name=nullptr, .description="show this help"},
-};
 
 int main(int argc, char * argv[]){
+  args::ArgumentParser parser("Replay saved weighted events",
+                              "Destination Event Formation Unit should be running.");
+  args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
+  args::Flag verbose(parser, "verbose", "Print additional information", {'v', "verbose"});
+
+  args::Group playback_type(parser, "Playback type (exclusive)", args::Group::Validators::Xor);
+  args::Flag sequential_flag(playback_type, "sequential", "Replay events in order", {'s', "sequential"});
+  args::Flag random_flag(playback_type, "random", "Replay events in random order", {'r', "random"});
+
+  args::Group number_group(parser, "Replay subset, FIRST and EVERY ignored if COUNT is not present", args::Group::Validators::DontCare);
+  args::ValueFlag<int> count_flag(number_group, "COUNT", "Number of events to replay", {'n', "count"});
+  args::ValueFlag<int> first_flag(number_group, "FIRST", "First event to replay", {'f', "first"});
+  args::ValueFlag<int> every_flag(number_group, "EVERY", "Replay every EVERYth event", {'e', "every"});
+
+  args::Group efu_group(parser, "Event Formation Unit connection", args::Group::Validators::DontCare);
+  args::ValueFlag<std::string> address_flag(efu_group, "ADDR", "EFU IP address", {'a', "addr"});
+  args::ValueFlag<int> port_flag(efu_group, "PORT", "EFU UDP port for accepting data", {'p', "port"});
+
+  args::Positional<std::string> filename_positional(parser, "filename", "Filename to replay");
+
+  try
+  {
+    parser.ParseCLI(argc, argv);
+  }
+  catch (const args::Help&)
+  {
+    std::cout << parser;
+    return 0;
+  }
+  catch (const args::ParseError& e)
+  {
+    std::cerr << e.what() << std::endl;
+    std::cerr << parser;
+    return 1;
+  }
+
+  auto count = count_flag ? args::get(count_flag) : -1;
+  auto first = first_flag ? args::get(first_flag) : 0;
+  auto every = every_flag ? args::get(every_flag) : 1;
+  auto address = address_flag ? args::get(address_flag) : "127.0.0.1";
+  auto port = port_flag ? args::get(port_flag) : 9000;
+  auto filename = args::get(filename_positional);
+
   int choice{Replay::NONE};
-  bool verbose{false}, count_set{false};
-  const char * filename{nullptr}, * address{nullptr};
-  int port{9000}, first{0}, count{-1}, every{1};
-  cag_option_context context;
-  cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
-  while (cag_option_fetch(&context)) {
-    switch (cag_option_get_identifier(&context)) {
-      case 'f':
-        first = std::stoi(cag_option_get_value(&context));
-        break;
-      case 'e':
-        every = std::stoi(cag_option_get_value(&context));
-        break;
-      case 'n':
-        count = std::stoi(cag_option_get_value(&context));
-        count_set = true;
-        break;
-      case 's':
-        choice |= SEQUENTIAL;
-        break;
-      case 'r':
-        choice |= RANDOM;
-        break;
-      case 'a':
-        address = cag_option_get_value(&context);
-        break;
-      case 'p':
-        port = std::stoi(cag_option_get_value(&context));
-        break;
-      case 'v':
-        verbose = true;
-        break;
-      case 'h':
-        std::cout << "Usage: replay [OPTIONS] filename" << std::endl;
-        std::cout << "Replay saved libreadout events to a running Event Formation Unit"  << std::endl;
-        cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
-        return EXIT_SUCCESS;
-      case '?':
-        cag_option_print_error(&context, stdout);
-        break;
+  if (sequential_flag) choice |= SEQUENTIAL;
+  if (random_flag) choice |= RANDOM;
+
+  if (count) {
+    if (verbose){
+      std::cout << "Replaying " << count << " events from " << filename << " to " << address << ":" << port << std::endl;
     }
-  }
-  if (address == nullptr) address = "127.0.0.1";
-
-  auto last = cag_option_get_index(&context);
-  if (last < argc) filename = argv[last++];
-  if (last < argc) {
-    std::cout << "unused parameter(s):";
-    for (; last<argc; ++last) std::cout << " " << argv[last];
-    std::cout << std::endl;
-  }
-  if (filename == nullptr){
-    std::cout << "a filename is required!" << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  std::cout << "verbose:" << verbose << " filename: " << filename << " address: " << address << " port: " << port << std::endl;
-
-  // allow for some user-input to choose how events are replayed ...
-  if (count_set){
     replay_subset(filename, address, port, first, count, every, choice);
   } else {
+    if (verbose){
+      std::cout << "Replaying all events from " << filename << " to " << address << ":" << port << std::endl;
+    }
     replay_all(filename, address, port, choice);
   }
-
   return EXIT_SUCCESS;
 }
