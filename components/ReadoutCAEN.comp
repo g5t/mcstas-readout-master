@@ -23,6 +23,8 @@ int noisy=0,
 noise_level=0.1,
 string event_mode = "p",
 string filename = 0,
+int merge_mpi=1,
+int keep_mpi_unmerged=0,
 int verbose=0, // -1: silent, 0: errors, 1: warnings, 2: info, 3: details
 int ess_type=52 // 0x34 == 52, 0x41==65
 )
@@ -74,6 +76,8 @@ int d_present;
 
 INITIALIZE
 %{
+char extension[128] = '\0';
+char * this_filename;
 
 // Include the header file and run any initialization for the real broadcaster
 if (ip == 0 || ip[0] == '\0'){
@@ -84,7 +88,31 @@ if (ip == 0 || ip[0] == '\0'){
 readout_newPacket(readout_ptr);
 readout_verbose(readout_ptr, verbose);
 if (!broadcast) readout_disable_network(readout_ptr);
-if ((filename != NULL) && (filename[0] != '\0')) readout_dump_to(filename);
+
+if ((filename != NULL) && (filename[0] != '\0')){
+#if defined USE_MPI
+// the filename, if present should be unique for each MPI process
+  MPI_MASTER(fprintf(stdout, "Message(%s): You are using HDF5 output with MPI, "
+                             "hence your will get %i filenames %s.node_#i.h5 as output.\n",
+                             NAME_CURRENT_COMP, mpi_node_count, filename);
+  );
+  sprintf(extension,"node_%i.h5",mpi_node_rank);
+#else
+  sprintf(extension,"h5");
+#endif
+  /*add output dir (if applicable) to the output filename and add extension if */
+  // Append the extension to the filename
+  //  -- do not use mcfull_file for this since it can not handle absolute filenames with a '.' in them
+  char * actual_filename = (char *) calloc(strlen(filename)+strlen(extension)+2, sizeof(char));
+  strcpy(actual_filename, filename);
+  strcat(actual_filename, ".");
+  strcat(actual_filename, extension);
+  // still use mcfull_file in case the filename does not include path information
+  this_filename = mcfull_file(actual_filename, NULL);
+  // release the memory now that we have the full filename
+  if (actual_filename) free(actual_filename);
+  readout_dump_to(this_filename);
+}
 
 fen_present = ((fen != NULL) && (fen[0] != '\0')) ? 1 : 0;
 a_present = ((a != NULL) && (a[0] != '\0')) ? 1 : 0;
@@ -179,6 +207,47 @@ FINALLY
 if (broadcast) readout_send(readout_ptr);
 // Remove the interface component
 readout_destroy(readout_ptr);
+// combine output files if necessary: should be in a SAVE block before FINALLY, but files are not closed until now.
+if ((filename != NULL) && (filename[0] != '\0') && merge_mpi){
+#if defined USE_MPI
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_MASTER(
+      if (mpi_node_count > 1){
+        char extension[128] = "h5";
+        char * output_filename;
+
+        char * real_filename = calloc(strlen(filename)+strlen(extension)+2, sizeof(char));
+        strcpy(real_filename, filename);
+        strcat(real_filename, ".");
+        strcat(real_filename, extension);
+        output_filename = mcfull_file(real_filename, NULL);
+
+        char ** merge_filenames = calloc(mpi_node_count, sizeof(char*));
+        for (int i=0; i<mpi_node_count; i++){
+          char * merge_filename = calloc(strlen(filename)+strlen(extension)+100, sizeof(char));
+          sprintf(merge_filename, "%s.node_%i.h5", filename, i);
+          merge_filenames[i] = mcfull_file(merge_filename, NULL);
+          free(merge_filename);
+        }
+        readout_merge_files(output_filename, merge_filenames, mpi_node_count);
+
+        /*remove the original unmerged files if wanted*/
+        if(!keep_mpi_unmerged){
+          int status{0};
+          for (int j=0;j<mpi_node_count;j++)
+            status += remove(mpi_node_files[j]);
+          if (status)
+            fprintf(stderr,"Warning (%s): Could not remove one or more unmerged files.\n", NAME_CURRENT_COMP);
+        }
+
+        free(output_filename);
+        for (int i=0; i<mpi_node_count; i++){
+          free(merge_filenames[i]);
+        }
+      }
+  );
+#endif
+}
 %}
 
 MCDISPLAY
