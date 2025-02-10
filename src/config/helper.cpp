@@ -12,6 +12,7 @@ std::filesystem::path executable_path() {
 #elif defined(__APPLE__)
 
 #include <mach-o/dyld.h>
+#include <vector>
 
 std::filesystem::path executable_path() {
   char buffer[1024];
