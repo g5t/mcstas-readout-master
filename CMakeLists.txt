@@ -125,7 +125,7 @@ add_executable(${READOUT_CONFIG_BINARY})
 target_include_directories(${READOUT_CONFIG_BINARY} PRIVATE ${cargs_INCLUDE_DIR})
 target_link_libraries(${READOUT_CONFIG_BINARY} PRIVATE ${cargs_LIBRARIES})
 
-if (READOUT_TESTS)
+if (READOUT_BUILD_TESTS)
     # Catch2 is used for testing
     find_package(Catch2 REQUIRED)
     # Threads are used in the library tests
@@ -143,7 +143,7 @@ endif()
 add_subdirectory(lib)  # sources for libreadout
 add_subdirectory(src)  # sources for file interface in C++
 
-if (READOUT_TESTS)
+if (READOUT_BUILD_TESTS)
     add_subdirectory(test) # sources for the testing binary
 endif()
 
