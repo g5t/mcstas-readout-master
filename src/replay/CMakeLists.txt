@@ -13,6 +13,6 @@ foreach(BIN_TARGET IN LISTS BIN_TARGETS)
 endforeach()
 
 
-if (READOUT_TESTS)
+if (READOUT_BUILD_TESTS)
     add_test(NAME replay_binary_test COMMAND ${READOUT_REPLAY_BINARY} --help)
 endif()

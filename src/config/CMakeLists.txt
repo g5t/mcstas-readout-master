@@ -13,7 +13,7 @@ foreach(BIN_TARGET IN LISTS CONFIG_BIN_TARGETS)
     target_include_directories(${BIN_TARGET} PRIVATE ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_BINARY_DIR} ${ARGS_INCLUDE_DIR})
 endforeach()
 
-if (READOUT_TESTS)
+if (READOUT_BUILD_TESTS)
     add_test(NAME replay_config_help_test COMMAND ${READOUT_CONFIG_BINARY} --help)
     add_test(NAME replay_config_show_test COMMAND ${READOUT_CONFIG_BINARY} --show libdir)
 endif()

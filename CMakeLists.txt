@@ -5,8 +5,9 @@ cmake_policy(SET CMP0017 NEW) # Prefer cmake's own files for include/find_packag
 set(CMAKE_MACOSX_RPATH OFF)
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
+set(READOUT_BUILD_ON_CONDA OFF CACHE BOOL "Set to ON to build for conda")
 set(READOUT_USE_CONAN ON CACHE BOOL "Use Conan to manage dependencies") # Set to OFF to use system libraries
-set(READOUT_TESTS ON CACHE BOOL "Build test binary")
+set(READOUT_BUILD_TESTS ON CACHE BOOL "Build test binary")
 
 if (READOUT_USE_CONAN)
     set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_LIST_DIR}/cmake/conan_provider.cmake")
@@ -66,6 +67,14 @@ if (MSVC)
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
     # Prevent Windows.h from defining its own min and max macros
     add_definitions(-DNOMINMAX -DREADOUT_SHARED -DREADOUT_EXPORT)
+elseif(APPLE)
+    # lots of warnings -- add -Werror for  all warnings as errors
+    add_compile_options(-Wall -Wextra -pedantic)
+    if (READOUT_BUILD_ON_CONDA)
+        # Enable use of, e.g. std::filesystem::path on macOS under Conda:
+        # https://conda-forge.org/docs/maintainer/knowledge_base/#newer-c-features-with-old-sdk
+        add_definitions(-D_LIBCPP_DISABLE_AVAILABILITY)
+    endif()
 else()
     # lots of warnings -- add -Werror for  all warnings as errors
     add_compile_options(-Wall -Wextra -pedantic)
@@ -90,7 +99,7 @@ SET(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
 
 
 list(APPEND CXX_TARGETS ${READOUT_REPLAY_BINARY})
-if (READOUT_TESTS)
+if (READOUT_BUILD_TESTS)
     list(APPEND CXX_TARGETS ${READOUT_TESTER_BINARY})
 endif()
 
