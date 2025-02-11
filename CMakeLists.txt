@@ -17,8 +17,8 @@ endif()
 include(check)
 checkSetup(READOUT) # generates version.hpp and adds the generated directory as a target include directory
 # So that we can print it to the console along with the specified build type
-message(STATUS "Build readout v${READOUT_VERSION} with type ${CMAKE_BUILD_TYPE}")
-project(mccode_readout LANGUAGES C CXX VERSION "${READOUT_VERSION}")
+message(STATUS "Build Readout v${READOUT_VERSION} with type ${CMAKE_BUILD_TYPE}")
+project(Readout LANGUAGES C CXX VERSION "${READOUT_VERSION}")
 
 set(READOUT_LIBRARY_TARGET readout)
 set(READOUT_REPLAY_BINARY readout-replay)
