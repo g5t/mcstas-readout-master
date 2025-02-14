@@ -20,6 +20,9 @@ def semver_groups(s):
 
 def git_run(args, default=None, cwd=None):
     from subprocess import run
+    from pathlib import Path
+    if not Path(cwd).joinpath('.git').is_dir():
+        return default
     res = run(args, cwd=cwd, capture_output=True, text=True)
     return default if res.returncode else res.stdout.strip()
 
@@ -52,7 +55,7 @@ def version_header(root: Path, filename: Path):
 
     sha, branch= git_info(root)
     full_v, safe_v = get_version(root)
-    time_str = datetime.now().isoformat(timespec='minutes')
+    date_str = datetime.now().date().isoformat()
     hostname = platform.node()
 
     text = dedent(fr"""
@@ -63,8 +66,8 @@ def version_header(root: Path, filename: Path):
         auto constexpr git_revision = "{sha}";
         //! `project` git repository branch at build time
         auto constexpr git_branch = "{branch}";
-        //! build date and time in YYYY-MM-DDThh:mm format
-        auto constexpr build_datetime = "{time_str}";
+        //! build date in YYYY-MM-DD format
+        auto constexpr build_date = "{date_str}";
         //! `project` version
         auto constexpr version_number = "{safe_v}";
         //! hostname of the build machine
@@ -77,8 +80,10 @@ def version_header(root: Path, filename: Path):
     if not (parent := filename.parent).is_dir():
         parent.mkdir(parents=True)
 
-    with filename.open('w') as file:
-        file.write(text)
+    # Do not write the file if it already exists and is the same, to avoid unnecessary rebuilds
+    if not filename.is_file() or filename.read_text() != text:
+        with filename.open('w') as file:
+            file.write(text)
 
     # Plus write to stdout so CMake can capture and use the version
     print(safe_v)
