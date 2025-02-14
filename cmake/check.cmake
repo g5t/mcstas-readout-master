@@ -21,13 +21,6 @@ function(checkVersion version)
           ECHO_ERROR_VARIABLE
           RESULT_VARIABLE result
   )
-#  if (NOT ${result} EQUAL 0)
-#    message(AUTHOR_WARNING "Unable to discover git repository version, using fall-back VERSION file")
-#    file(STRINGS ${CURRENT_LIST_DIR}/VERSION version_file_contents)
-#    list(GET version_file_contents 0 returned_version)
-#  else()
-#    file(WRITE ${CURRENT_LIST_DIR}/VERSION "${returned_version}")
-#  endif()
   set(${version} ${returned_version} PARENT_SCOPE)
 endfunction()
 
