@@ -4,11 +4,11 @@ SETTING PARAMETERS (
 string ring = 0,
 string fen = 0,
 string tube = 0,
-string a = 0,
-string b = 0,
-string c = 0,
-string d = 0,
-string tof = "t",
+string a_name = 0,
+string b_name = 0,
+string c_name = 0,
+string d_name = 0,
+string tof_name = "t",
 string ip = 0,
 int fen_value=0,
 int a_value=0,
@@ -76,7 +76,7 @@ int d_present;
 
 INITIALIZE
 %{
-char extension[128] = '\0';
+char extension[128] = "\0";
 char * this_filename;
 
 // Include the header file and run any initialization for the real broadcaster
@@ -111,14 +111,14 @@ if ((filename != NULL) && (filename[0] != '\0')){
   this_filename = mcfull_file(actual_filename, NULL);
   // release the memory now that we have the full filename
   if (actual_filename) free(actual_filename);
-  readout_dump_to(this_filename);
+  readout_dump_to(readout_ptr, this_filename);
 }
 
 fen_present = ((fen != NULL) && (fen[0] != '\0')) ? 1 : 0;
-a_present = ((a != NULL) && (a[0] != '\0')) ? 1 : 0;
-b_present = ((b != NULL) && (b[0] != '\0')) ? 1 : 0;
-c_present = ((c != NULL) && (c[0] != '\0')) ? 1 : 0;
-d_present = ((d != NULL) && (d[0] != '\0')) ? 1 : 0;
+a_present = ((a_name != NULL) && (a_name[0] != '\0')) ? 1 : 0;
+b_present = ((b_name != NULL) && (b_name[0] != '\0')) ? 1 : 0;
+c_present = ((c_name != NULL) && (c_name[0] != '\0')) ? 1 : 0;
+d_present = ((d_name != NULL) && (d_name[0] != '\0')) ? 1 : 0;
 // Make sure the provided property names are accessible -- no error checking later
 int failure=0;
 particle_getvar(_particle, ring, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP, ring);
@@ -127,22 +127,22 @@ if (fen_present){
 }
 particle_getvar(_particle, tube, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP, tube);
 if (a_present){
-  particle_getvar(_particle, a, &failure);
-  if (failure) readout_caen_error(NAME_CURRENT_COMP, a);
+  particle_getvar(_particle, a_name, &failure);
+  if (failure) readout_caen_error(NAME_CURRENT_COMP, a_name);
 }
 if (b_present){
-  particle_getvar(_particle, b, &failure);
-  if (failure) readout_caen_error(NAME_CURRENT_COMP, b);
+  particle_getvar(_particle, b_name, &failure);
+  if (failure) readout_caen_error(NAME_CURRENT_COMP, b_name);
 }
 if (c_present){
-  particle_getvar(_particle, c, &failure);
-  if (failure) readout_caen_error(NAME_CURRENT_COMP, c);
+  particle_getvar(_particle, c_name, &failure);
+  if (failure) readout_caen_error(NAME_CURRENT_COMP, c_name);
 }
 if (d_present){
-  particle_getvar(_particle, d, &failure);
-  if (failure) readout_caen_error(NAME_CURRENT_COMP, d);
+  particle_getvar(_particle, d_name, &failure);
+  if (failure) readout_caen_error(NAME_CURRENT_COMP, d_name);
 }
-particle_getvar(_particle,  tof, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP,  tof);
+particle_getvar(_particle, tof_name, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP,  tof_name);
 
 p_or_pp = (strcmp(event_mode, "p") == 0) ? 0 : 1;
 if (p_or_pp && !strcmp(event_mode, "pp")) readout_caen_error(NAME_CURRENT_COMP, "Undefined event mode");
@@ -165,11 +165,11 @@ if (event_count) {
   int_ring = readout_caen_particle_getvar_int(_particle, ring);
   int_fen = fen_present ? readout_caen_particle_getvar_int(_particle, fen) : fen_value;
   int_tube = readout_caen_particle_getvar_int(_particle, tube);
-  int_A = a_present ? readout_caen_particle_getvar_int(_particle, a) : a_value;
-  int_B = b_present ? readout_caen_particle_getvar_int(_particle, b) : b_value;
-  int_C = c_present ? readout_caen_particle_getvar_int(_particle, c) : c_value;
-  int_D = d_present ? readout_caen_particle_getvar_int(_particle, d) : d_value;
-  double_tof = particle_getvar(_particle, tof, 0);
+  int_A = a_present ? readout_caen_particle_getvar_int(_particle, a_name) : a_value;
+  int_B = b_present ? readout_caen_particle_getvar_int(_particle, b_name) : b_value;
+  int_C = c_present ? readout_caen_particle_getvar_int(_particle, c_name) : c_value;
+  int_D = d_present ? readout_caen_particle_getvar_int(_particle, d_name) : d_value;
+  double_tof = particle_getvar(_particle, tof_name, 0);
 } else {
   int_ring = (int)(rand01() * 3);
   int_tube = (int)(rand01() * 15);

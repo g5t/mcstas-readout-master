@@ -17,7 +17,7 @@ foreach(LIB_TARGET IN LISTS LIB_TARGETS)
     #target_include_directories(${CXX_TARGET} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
     target_include_directories(
             ${LIB_TARGET}
-            PUBLIC
+            INTERFACE
             $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
             $<INSTALL_INTERFACE:>  # <prefix>
     )

@@ -111,7 +111,7 @@ set(Readout_LIBNAME "${CMAKE_SHARED_LIBRARY_PREFIX}${READOUT_LIBRARY_TARGET}${CM
 set_target_properties(${READOUT_LIBRARY_TARGET} PROPERTIES PUBLIC_HEADER lib/Readout.h)
 set_target_properties(${READOUT_LIBRARY_TARGET} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
-add_library(READOUT::${READOUT_LIBRARY_TARGET} ALIAS ${READOUT_LIBRARY_TARGET}) # always alias namespaces locally
+add_library(Readout::${READOUT_LIBRARY_TARGET} ALIAS ${READOUT_LIBRARY_TARGET}) # always alias namespaces locally
 
 # target for file-replay CLI utility
 list(APPEND BIN_TARGETS ${READOUT_REPLAY_BINARY})
@@ -134,7 +134,7 @@ if (READOUT_BUILD_TESTS)
     # target for testing library functionality
     add_executable(${READOUT_TESTER_TARGET})
     # target_include_directories(${READOUT_TESTER_TARGET} PRIVATE lib)
-    target_link_libraries(${READOUT_TESTER_TARGET} PRIVATE Catch2::Catch2WithMain Threads::Threads READOUT::${READOUT_LIBRARY_TARGET})
+    target_link_libraries(${READOUT_TESTER_TARGET} PRIVATE Catch2::Catch2WithMain Threads::Threads ${READOUT_LIBRARY_TARGET})
     include(CTest)
     include(Catch)
     catch_discover_tests(${READOUT_TESTER_TARGET})
@@ -160,7 +160,7 @@ install(TARGETS ${READOUT_LIBRARY_TARGET} ${READOUT_REPLAY_BINARY} ${READOUT_CON
         ARCHIVE DESTINATION ${Readout_LIBDIR}
         PUBLIC_HEADER DESTINATION ${Readout_INCDIR})
 # The following would allow for importing Readout by another CMake ... but causes a CMake configuration error
-#install(EXPORT ReadoutTargets FILE ReadoutTargets.cmake NAMESPACE READOUT:: DESTINATION ${Readout_CMAKEDIR})
+install(EXPORT ${PROJECT_NAME}Targets FILE ${PROJECT_NAME}Targets.cmake NAMESPACE Readout:: DESTINATION ${Readout_CMAKEDIR})
 
 configure_file("${PROJECT_SOURCE_DIR}/cmake/ReadoutConfig.cmake.in" "${PROJECT_BINARY_DIR}/ReadoutConfig.cmake" @ONLY)
 

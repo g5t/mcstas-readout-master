@@ -40,7 +40,10 @@ function(checkSetup name)
 endfunction()
 
 function(addCheckDependency target)
-  target_include_directories(${target} PUBLIC ${gen_dir})
+  target_include_directories(${target} PUBLIC
+          $<BUILD_INTERFACE:${gen_dir}>
+          $<INSTALL_INTERFACE:>  # <prefix>
+  )
   add_dependencies(${target} AlwaysCheck)
 endfunction()
 
