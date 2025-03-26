@@ -1,3 +1,3 @@
 file(GLOB CATCH_SOURCES *_test.cpp)
 target_sources(${READOUT_TESTER_TARGET} PRIVATE ${CATCH_SOURCES})
-target_include_directories(${READOUT_TESTER_TARGET} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+target_include_directories(${READOUT_TESTER_TARGET} PRIVATE ${CMAKE_CURRENT_LIST_DIR})

@@ -17,3 +17,5 @@ get_filename_component(Readout_INCDIR "${Readout_CMAKEDIR}/@Readout_CMAKE2INC@" 
 
 #Libname:
 set( Readout_LIBNAME @Readout_LIBNAME@ )
+
+include( "${Readout_CMAKEDIR}/ReadoutTargets.cmake" )
