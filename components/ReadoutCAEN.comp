@@ -8,7 +8,7 @@ string a_name = 0,
 string b_name = 0,
 string c_name = 0,
 string d_name = 0,
-string tof_name = "t",
+string tof = "t",
 string ip = 0,
 int fen_value=0,
 int a_value=0,
@@ -29,7 +29,7 @@ int verbose=0, // -1: silent, 0: errors, 1: warnings, 2: info, 3: details
 int ess_type=52 // 0x34 == 52, 0x41==65
 )
 OUTPUT PARAMETERS ()
-DEPENDENCY "-Wl,-rpath,CMD(readout-config --show libdir) -LCMD(readout-config --show libdir) -lReadout -ICMD(readout-config --show includedir)"
+DEPENDENCY "-Wl,-rpath,CMD(readout-config --show libdir) -LCMD(readout-config --show libdir) -lreadout -ICMD(readout-config --show includedir)"
 SHARE
 %{
 #include <signal.h>
@@ -142,7 +142,7 @@ if (d_present){
   particle_getvar(_particle, d_name, &failure);
   if (failure) readout_caen_error(NAME_CURRENT_COMP, d_name);
 }
-particle_getvar(_particle, tof_name, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP,  tof_name);
+particle_getvar(_particle, tof, &failure); if (failure) readout_caen_error(NAME_CURRENT_COMP,  tof);
 
 p_or_pp = (strcmp(event_mode, "p") == 0) ? 0 : 1;
 if (p_or_pp && !strcmp(event_mode, "pp")) readout_caen_error(NAME_CURRENT_COMP, "Undefined event mode");
@@ -169,7 +169,7 @@ if (event_count) {
   int_B = b_present ? readout_caen_particle_getvar_int(_particle, b_name) : b_value;
   int_C = c_present ? readout_caen_particle_getvar_int(_particle, c_name) : c_value;
   int_D = d_present ? readout_caen_particle_getvar_int(_particle, d_name) : d_value;
-  double_tof = particle_getvar(_particle, tof_name, 0);
+  double_tof = particle_getvar(_particle, tof, 0);
 } else {
   int_ring = (int)(rand01() * 3);
   int_tube = (int)(rand01() * 15);

@@ -27,7 +27,7 @@ int ess_type=16, // TTLMonitor should always be 0x10 == 16
 double efficiency=1
 )
 OUTPUT PARAMETERS ()
-DEPENDENCY "-Wl,-rpath,CMD(readout-config --show libdir) -LCMD(readout-config --show libdir) -lReadout -ICMD(readout-config --show includedir)"
+DEPENDENCY "-Wl,-rpath,CMD(readout-config --show libdir) -LCMD(readout-config --show libdir) -lreadout -ICMD(readout-config --show includedir)"
 SHARE
 %{
 #include <signal.h>
@@ -108,7 +108,7 @@ if ((filename != NULL) && (filename[0] != '\0')){
   this_filename = mcfull_file(actual_filename, NULL);
   // release the memory now that we have the full filename
   if (actual_filename) free(actual_filename);
-  readout_dump_to(this_filename);
+  readout_dump_to(readout_ptr, this_filename);
 }
 
 
