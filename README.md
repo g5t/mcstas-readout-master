@@ -65,27 +65,6 @@ by default but can be overridden by setting the component parameter `tof`.
 | `tof`           | `HighTime`, `LowTime` |
 
 
-# `Readout.comp`: Subprocess EFU, CAEN electronics [deprecated]
-Using `EFU` produced `HDF5` files along with `mcrun` type scans requires that the `EFU` be stopped after every scan point.
-This component can control the execution of a local `EFU` by starting it in a subprocess and instructing it to stop
-via its command-port interface.
-
-At the moment, it only supports CAEN instruments and should probably not be used going forward.
-
-## McStas Component specific parameters
-| Parameter        | Type   | Description                                                                             |
-|------------------|--------|-----------------------------------------------------------------------------------------|
-| `tube`           | named  | identifies the pair of digitizers connected to the channel                              |
-| `a`              | named  | is the integrated voltage output of the first digitizer                                 |
-| `b`              | named  | is the integrated voltage output of the second digitizer                                |
-| `receiver`       | string | the path to the EFU executable, required if it is to be started locally                 |
-| `options`        | string | command-line options used when starting the EFU                                         |
-| `filename`       | string | filename for events if EFU started and output requested, `NAME_CURRENT_COMP` by default |
-| `hdf5_output`    | int    | flag to control dumping EFU-received events if EFU started, on by default               |
-| `start_receiver` | int    | flag to control whether the local EFU should be started, on by default                  |
-
-
-
 # `ReadoutCAEN.comp`: instruments with CAEN electronics
 
 At least four ESS instruments will use CAEN digitizers to read out the detector signals.
@@ -100,10 +79,10 @@ which makes use of an EFU, a Kafka broker and independent file writers; all mana
 | Parameter   | Type  | Description                                                 |
 |-------------|-------|-------------------------------------------------------------|
 | `tube`      | named | identifies the group of digitizers connected to the channel |
-| `a`         | named | is the integrated voltage output of the first digitizer     |
-| `b`         | named | is the integrated voltage output of the second digitizer    |
-| `c`         | named | is the integrated voltage output of the third digitizer     |
-| `d`         | named | is the integrated voltage output of the fourth digitizer    |
+| `a_name`    | named | is the integrated voltage output of the first digitizer     |
+| `b_name`    | named | is the integrated voltage output of the second digitizer    |
+| `c_name`    | named | is the integrated voltage output of the third digitizer     |
+| `d_name`    | named | is the integrated voltage output of the fourth digitizer    |
 | `fen_value` | int   | used for `FENId` if no named `fen` parameter                |
 | `a_value`   | int   | used when `a` is not named; default 0                       |
 | `b_value`   | int   | used when `b` is not named; default 0                       |
@@ -120,10 +99,10 @@ which are therefore required as input to the CAEN EFU  as `AmpA` and `AmpB`.
 | Named parameter | EFU parameter |
 |-----------------|---------------|
 | `tube`          | `GroupId`     |
-| `a`             | `AmpA`        |
-| `b`             | `AmpB`        |
-| `c`             | `AmpC`        |
-| `d`             | `AmpD`        |
+| `a_name`        | `AmpA`        |
+| `b_name`        | `AmpB`        |
+| `c_name`        | `AmpC`        |
+| `d_name`        | `AmpD`        |
 
 
 # `ReadoutTTLMonitor.comp`: simple TTL based beam monitors
