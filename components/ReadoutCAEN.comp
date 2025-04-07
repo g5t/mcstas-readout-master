@@ -229,13 +229,13 @@ if ((filename != NULL) && (filename[0] != '\0') && merge_mpi){
           merge_filenames[i] = mcfull_file(merge_filename, NULL);
           free(merge_filename);
         }
-        readout_merge_files(output_filename, merge_filenames, mpi_node_count);
+        readout_merge_files((const char *) output_filename, (const char **) merge_filenames, mpi_node_count);
 
         /*remove the original unmerged files if wanted*/
         if(!keep_mpi_unmerged){
-          int status{0};
-          for (int j=0;j<mpi_node_count;j++)
-            status += remove(mpi_node_files[j]);
+          int status=0;
+          for (int j=0; j<mpi_node_count; j++)
+            status += remove(merge_filenames[j]);
           if (status)
             fprintf(stderr,"Warning (%s): Could not remove one or more unmerged files.\n", NAME_CURRENT_COMP);
         }
