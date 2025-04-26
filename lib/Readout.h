@@ -103,6 +103,12 @@ RL_API void readout_merge_files(const char * out_filename, const char ** in_file
 RL_API void readout_disable_network(readout_t * r_ptr);
 RL_API void readout_enable_network(readout_t * r_ptr);
 
+// Set the random seed for the readout random object
+RL_API void readout_rand_seed01(readout_t * r_ptr, double seed);
+RL_API void readout_rand_seed(readout_t * r_ptr, uint32_t seed);
+// Convert a probability to a discrete number of events
+RL_API int readout_rand_poisson(readout_t * r_ptr, double mean);
+
 #ifdef __cplusplus
 }
 #endif

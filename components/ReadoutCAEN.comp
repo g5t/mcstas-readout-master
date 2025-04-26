@@ -51,14 +51,6 @@ SHARE
       double bits = particle_getvar(p, name, 0);
       return *(int*)&bits;
   }
-  int readout_caen_rand_poisson(double rate){
-    //double rand_exp = -log(rand01()) / rate;
-    double criteria = exp(-rate);
-    int count=0;
-    double prod=1;
-    while ((prod *= rand01()) > criteria) ++count;
-    return count;
-  }
 %}
 
 DECLARE
@@ -151,17 +143,13 @@ if (p_or_pp && !strcmp(event_mode, "pp")) readout_caen_error(NAME_CURRENT_COMP, 
 
 TRACE
 %{
-double pp = particle_getvar(_particle, "p", 0) * sqrt((double)(mcget_ncount()));
+double pp = particle_getvar(_particle, "p", 0); // * sqrt((double)(mcget_ncount()));
 if (p_or_pp) pp *= pp;
-
-int event_count = readout_caen_rand_poisson(pp);
-
-int is_noise = (!event_count && noisy && rand01() < noise_level) ? 1 : 0;
 
 int int_ring, int_fen, int_tube, int_A, int_B, int_C, int_D;
 double double_tof;
 
-if (event_count) {
+if (pp) {
   int_ring = readout_caen_particle_getvar_int(_particle, ring);
   int_fen = fen_present ? readout_caen_particle_getvar_int(_particle, fen) : fen_value;
   int_tube = readout_caen_particle_getvar_int(_particle, tube);
@@ -181,24 +169,19 @@ if (event_count) {
   double_tof = rand01() / pulse_rate;
 }
 
-if (is_noise) event_count = 1;
+// add error checking of int -> uintN_t values?
+uint8_t RING = (uint8_t)int_ring;
+uint8_t FEN = (uint8_t)int_fen;
+readout_data.channel = (uint8_t)int_tube;
+readout_data.a = (uint16_t)int_A;
+readout_data.b = (uint16_t)int_B;
+readout_data.c = (uint16_t)int_C;
+readout_data.d = (uint16_t)int_D;
+if (verbose > 2)
+  printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, readout_data.channel, readout_data.a, readout_data.b, double_tof, event_count);
+// Send the event to the broadcaster to be accumulated and broadcast and/or store the event to file
+readout_add(readout_ptr, RING, FEN, double_tof, pp, (const void *)(&readout_data));
 
-if (event_count) {
-  // add error checking of int -> uintN_t values?
-  uint8_t RING = (uint8_t)int_ring;
-  uint8_t FEN = (uint8_t)int_fen;
-  readout_data.channel = (uint8_t)int_tube;
-  readout_data.a = (uint16_t)int_A;
-  readout_data.b = (uint16_t)int_B;
-  readout_data.c = (uint16_t)int_C;
-  readout_data.d = (uint16_t)int_D;
-  if (verbose > 2)
-    printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, readout_data.channel, readout_data.a, readout_data.b, double_tof, event_count);
-  for (int i=0; i<1 /*event_count*/; ++i){
-    // Send the event to the broadcaster to be accumulated and broadcast and/or store the event to file
-    readout_add(readout_ptr, RING, FEN, double_tof, p_or_pp, (const void *)(&readout_data));
-  }
-}
 %}
 
 FINALLY

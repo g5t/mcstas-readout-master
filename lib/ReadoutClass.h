@@ -12,6 +12,7 @@
 #include <string>
 #include <utility>
 #include <optional>
+#include <random>
 
 #include "Structs.h"
 #include "Readout.h"
@@ -53,6 +54,8 @@ public:
   // Adds a readout to the transmission buffer.
   // If there is no room left, transmit and initialize a new packet
   void addReadout(uint8_t Ring, uint8_t FEN, double tof, double weight, const void * data);
+  // Add a single readout
+  void addReadout(uint8_t Ring, uint8_t FEN, efu_time t, const void * data);
   // Specializations for handled data types
   void addReadout(uint8_t Ring, uint8_t FEN, efu_time t, const CAEN_readout_t * data);
   void addReadout(uint8_t Ring, uint8_t FEN, efu_time t, const TTLMonitor_readout_t * data);
@@ -111,6 +114,15 @@ public:
   void enable_network() {network = true;}
   void disable_network() {network = false;}
 
+  void set_random_seed(const uint32_t seed) {
+    random_engine.seed(seed);
+  }
+
+  int random_poisson(const double mean) {
+    std::poisson_distribution<int> distribution(mean);
+    return distribution(random_engine);
+  }
+
 private:
   HighFive::CompoundType datatype() const {
     using namespace HighFive;
@@ -153,4 +165,6 @@ private:
   bool network{true};
   efu_time period, time;
   cluon::UDPSender sender;
+
+  std::mt19937 random_engine{std::default_random_engine{}()};
 };
