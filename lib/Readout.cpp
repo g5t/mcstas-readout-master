@@ -136,6 +136,25 @@ void readout_enable_network(readout_t * r_ptr){
   return obj->enable_network();
 }
 
+void readout_rand_seed01(readout_t * r_ptr, const double seed){
+  Readout * obj;
+  if (r_ptr == nullptr) return;
+  obj = static_cast<Readout*>(r_ptr->obj);
+  return obj->set_random_seed(static_cast<uint32_t>(seed * UINT32_MAX));
+}
+void readout_rand_seed(readout_t * r_ptr, const uint32_t seed){
+  Readout * obj;
+  if (r_ptr == nullptr) return;
+  obj = static_cast<Readout*>(r_ptr->obj);
+  return obj->set_random_seed(seed);
+}
+int readout_rand_poisson(readout_t * r_ptr, const double mean){
+  Readout * obj;
+  if (r_ptr == nullptr) return 0;
+  obj = static_cast<Readout*>(r_ptr->obj);
+  return obj->random_poisson(mean);
+}
+
 
   // 
 #ifdef __cplusplus

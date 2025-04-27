@@ -132,15 +132,26 @@ void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const efu_time t
 void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const double tof, const double weight, const void *data) {
   // store the readout to file if requested
   if (writer.has_value()) writer->saveReadout(Ring, FEN, tof, weight, data);
-  // provided time-of-flight plus the current pulse time
-  auto t = efu_time(tof) + time;
-  // TODO implement t = (tof % period) + time -- such that we have realistic reference times
   if (!network){
     if (verbosity > 1) std::cout << "No readout added to buffer due to disabled network" << std::endl;
     return;
   }
+  // provided time-of-flight plus the current pulse time
+  auto t = efu_time(tof) + time;
+  // TODO implement t = (tof % period) + time -- such that we have realistic reference times
   lasthi = t.high();
   lastlo = t.low();
+  // send the same event (possibly) multiple times, depending on the weighted counting rate
+  if (weight) {
+    for (int i = 0; i < random_poisson(weight); ++i) addReadout(Ring, FEN, t, data);
+  } else {
+    // this is a noise event, which has randomized data and should always be sent
+    addReadout(Ring, FEN, t, data);
+  }
+}
+
+
+void Readout::addReadout(const uint8_t Ring, const uint8_t FEN, const efu_time t, const void *data){
   const auto type = readoutType_from_detectorType(Type);
   switch (type) {
     case ReadoutType::CAEN: return addReadout(Ring, FEN, t, static_cast<const CAEN_readout_t*>(data));
