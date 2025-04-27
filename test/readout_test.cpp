@@ -56,7 +56,8 @@ TEST_CASE("Send and receive CAEN packets","[c][CAEN]"){
       caen_data.b = max - i;
       caen_data.c = 0;
       caen_data.d = 0;
-      readout_add(detector_efu, ring, fen, tof, static_cast<double>(i), static_cast<const void *>(&caen_data));
+      // Setting the weight to 0, otherwise it is used to send a random number of packets
+      readout_add(detector_efu, ring, fen, tof, 0., static_cast<const void *>(&caen_data));
     }
     readout_destroy(detector_efu);
   }
@@ -111,10 +112,11 @@ TEST_CASE("Send and receive TTLMonitor packets","[c]"){
       ttl_data.pos = tube;
       ttl_data.channel = 0;
       ttl_data.adc = i;
-      readout_add(monitor_efu, 0, 100, tof, 1.0, static_cast<const void *>(&ttl_data));
+      // Setting the weight to 0, otherwise it is used to send a random number of packets
+      readout_add(monitor_efu, 0, 100, tof, 0.0, static_cast<const void *>(&ttl_data));
       ttl_data.channel = 1;
       ttl_data.adc = max - i;
-      readout_add(monitor_efu, 0, 100, tof, 2.0, static_cast<const void *>(&ttl_data));
+      readout_add(monitor_efu, 0, 100, tof, 0.0, static_cast<const void *>(&ttl_data));
     }
     readout_destroy(monitor_efu);
   }
