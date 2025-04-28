@@ -141,15 +141,15 @@ output2 = ReadoutTTLMonitor(channel_value=2, fen_value=100, adc="monitor_signal"
 ```
 
 ## Additional component parameters
-| Parameter       | Type  | Description                                        |
-|-----------------|-------|----------------------------------------------------|
-| `pos`           | named | detection position in monitor                      |
-| `channel`       | named | identifies the monitor                             |
-| `adc`           | named | the integrated voltage output of the digitizer     |
-| `ring_value`    | int   | used for `FibreId` if no named `ring` parameter    |
-| `fen_value`     | int   | used for `FENId` if no named `fen` parameter       |
-| `pos_value`     | int   | used for `Pos` if no named `pos` parameter         |
-| `channel_value` | int   | used for `Channel` if no named `channel` parameter |
+| Parameter        | Type  | Description                                         |
+|------------------|-------|-----------------------------------------------------|
+| `position`       | named | detection position in monitor                       |
+| `identity`       | named | identifies the monitor                              |
+| `output`         | named | the integrated voltage output of the digitizer      |
+| `ring_value`     | int   | used for `FibreId` if no named `ring` parameter     |
+| `fen_value`      | int   | used for `FENId` if no named `fen` parameter        |
+| `pos_value`      | int   | used for `Pos` if no named `position` parameter     |
+| `identity_value` | int   | used for `Channel` if no named `identity` parameter |
 
 
 # Installation

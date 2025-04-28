@@ -6,10 +6,85 @@
 #include <Structs.h>
 #include "test_utils.h"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+int find_port() {
+  WSADATA wsaData;
+  if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+    std::cerr << "WSAStartup failed" << std::endl;
+    return -1;
+  }
+
+  int port = 0;
+  SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (sock == INVALID_SOCKET) {
+    std::cerr << "Socket creation failed: " << WSAGetLastError() << std::endl;
+    WSACleanup();
+    return -1;
+  }
+
+  sockaddr_in addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  addr.sin_port = htons(port);
+
+  if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) == SOCKET_ERROR) {
+    std::cerr << "Bind failed: " << WSAGetLastError() << std::endl;
+    closesocket(sock);
+    WSACleanup();
+    return -1;
+  }
+
+  int len = sizeof(addr);
+  if (getsockname(sock, (struct sockaddr *)&addr, &len) == SOCKET_ERROR) {
+    std::cerr << "getsockname failed: " << WSAGetLastError() << std::endl;
+    closesocket(sock);
+    WSACleanup();
+    return -1;
+  }
+
+  port = ntohs(addr.sin_port);
+  closesocket(sock);
+  WSACleanup();
+  return port;
+}
+#else
+int find_port() {
+  int port = 0;
+  int sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (sock < 0) {
+    perror("socket");
+    return -1;
+  }
+  struct sockaddr_in addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  addr.sin_port = htons(port);
+  if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    perror("bind");
+    close(sock);
+    return -1;
+  }
+  socklen_t len = sizeof(addr);
+  if (getsockname(sock, (struct sockaddr *)&addr, &len) == -1) {
+    perror("getsockname");
+    close(sock);
+    return -1;
+  }
+  port = ntohs(addr.sin_port);
+  close(sock);
+  return port;
+}
+#endif
+
 TEST_CASE("Send and receive CAEN packets","[c][CAEN]"){
   const uint16_t max{1000};
   uint32_t detector_type{0x34};
-  int detector_port{9000};
+
+  int detector_port = find_port();
   auto stats = std::make_shared<UDPStats>();
 
   cluon::UDPReceiver detector_receiver("127.0.0.1", detector_port,
@@ -73,7 +148,7 @@ TEST_CASE("Send and receive CAEN packets","[c][CAEN]"){
 TEST_CASE("Send and receive TTLMonitor packets","[c]"){
   const uint16_t max{1000};
   uint32_t monitor_type{0x10};
-  int monitor_port{9001};
+  int monitor_port = find_port();
   auto stats = std::make_shared<UDPStats>();
 
   cluon::UDPReceiver monitor_receiver("127.0.0.1", monitor_port,
