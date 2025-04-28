@@ -3,15 +3,15 @@ DEFINITION PARAMETERS()
 SETTING PARAMETERS (
 string ring = 0,
 string fen = 0,
-string pos = 0,
-string channel = 0,
-string adc = 0,
+string position = 0,
+string identity = 0,
+string value = 0,
 string tof = "t",
 string ip = 0,
 int ring_value=0,
 int fen_value=0,
-int pos_value=0,
-int channel_value=0,
+int position_value=0,
+int identity_value=0,
 int port = 9000,
 int command_port = 10800,
 int broadcast = 1,
@@ -59,13 +59,13 @@ readout_t* readout_ptr;
 int p_or_pp;
 int ring_present;
 int fen_present;
-int pos_present;
-int channel_present;
+int position_present;
+int identity_present;
 %}
 
 INITIALIZE
 %{
-char extension[128] = '\0';
+char extension[128] = "\0";
 char * this_filename;
 
 // Include the header file and run any initialization for the real broadcaster
@@ -106,8 +106,8 @@ if ((filename != NULL) && (filename[0] != '\0')){
 
 ring_present = ((ring != NULL) && (ring[0] != '\0')) ? 1 : 0;
 fen_present = ((fen != NULL) && (fen[0] != '\0')) ? 1 : 0;
-pos_present = ((pos != NULL) && (pos[0] != '\0')) ? 1 : 0;
-channel_present = ((channel != NULL) && (channel[0] != '\0')) ? 1 : 0;
+position_present = ((position != NULL) && (position[0] != '\0')) ? 1 : 0;
+identity_present = ((identity != NULL) && (identity[0] != '\0')) ? 1 : 0;
 // Make sure the provided property names are accessible -- no error checking later
 int failure=0;
 if (ring_present){
@@ -116,13 +116,13 @@ if (ring_present){
 if (fen_present){
     particle_getvar(_particle, fen, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, fen);
 }
-if (pos_present){
-    particle_getvar(_particle, pos, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, pos);
+if (position_present){
+    particle_getvar(_particle, position, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, position);
 }
-if (channel_present){
-    particle_getvar(_particle, channel, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, channel);
+if (identity_present){
+    particle_getvar(_particle, identity, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, identity);
 }
-particle_getvar(_particle, adc, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, adc);
+particle_getvar(_particle, value, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, value);
 particle_getvar(_particle, tof, &failure); if (failure) readout_ttlmonitor_error(NAME_CURRENT_COMP, tof);
 
 p_or_pp = (strcmp(event_mode, "p") == 0) ? 0 : 1;
@@ -136,33 +136,33 @@ double pp = particle_getvar(_particle, "p", 0); // * sqrt((double)(mcget_ncount(
 if (p_or_pp) pp *= pp;
 pp *= efficiency;
 
-int int_ring, int_fen, int_pos, int_channel, int_adc;
+int int_ring, int_fen, int_position, int_identity, int_value;
 double double_tof;
 
 if (pp) {
   int_ring = ring_present ? readout_ttlmonitor_particle_getvar_int(_particle, ring) : ring_value;
   int_fen = fen_present ? readout_ttlmonitor_particle_getvar_int(_particle, fen) : fen_value;
-  int_pos = pos_present ? readout_ttlmonitor_particle_getvar_int(_particle, pos) : pos_value;
-  int_channel = channel_present ? readout_ttlmonitor_particle_getvar_int(_particle, channel) : channel_value;
-  int_adc = readout_ttlmonitor_particle_getvar_int(_particle, adc);
+  int_position = position_present ? readout_ttlmonitor_particle_getvar_int(_particle, position) : position_value;
+  int_identity = identity_present ? readout_ttlmonitor_particle_getvar_int(_particle, identity) : identity_value;
+  int_value = readout_ttlmonitor_particle_getvar_int(_particle, value);
   double_tof = particle_getvar(_particle, tof, 0);
 } else {
   int_ring = (int)(rand01());
   int_fen = 0;
-  int_pos = pos_value;
-  int_channel = channel_value;
-  int_adc = (int)(rand01() * 4096);
+  int_position = position_value;
+  int_identity = identity_value;
+  int_value = (int)(rand01() * 4096);
   double_tof = rand01() / pulse_rate;
 }
 
 // add error checking of int -> uintN_t values?
 uint8_t RING = (uint8_t)int_ring;
 uint8_t FEN = (uint8_t)int_fen;
-readout_data.pos = (uint8_t)int_pos;
-readout_data.channel = (uint8_t)int_channel;
-readout_data.adc = (uint16_t)int_adc;
+readout_data.pos = (uint8_t)int_position;
+readout_data.channel = (uint8_t)int_identity;
+readout_data.adc = (uint16_t)int_value;
 if (verbose > 2)
-  printf("(%2u %2u) (%2u %2u) %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, readout_data.pos, readout_data.channel, readout_data.adc, double_tof, event_count);
+  printf("(%2u %2u) (%2u %2u) %5u %0.10f -- Accumulated\n", RING, FEN, readout_data.pos, readout_data.channel, readout_data.adc, double_tof);
 // Send the event to the broadcaster to be accumulated and broadcast and/or store the event to file
 readout_add(readout_ptr, RING, FEN, double_tof, pp, (const void *)(&readout_data));
 
@@ -200,7 +200,7 @@ MPI_Barrier(MPI_COMM_WORLD);
 
         /*remove the original unmerged files if wanted*/
         if(!keep_mpi_unmerged){
-          int status{=0;
+          int status=0;
           for (int j=0; j<mpi_node_count; j++)
             status += remove(merge_filenames[j]);
           if (status)
@@ -214,6 +214,7 @@ MPI_Barrier(MPI_COMM_WORLD);
       }
   );
 #endif
+}
 %}
 
 MCDISPLAY

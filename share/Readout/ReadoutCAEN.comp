@@ -178,7 +178,7 @@ readout_data.b = (uint16_t)int_B;
 readout_data.c = (uint16_t)int_C;
 readout_data.d = (uint16_t)int_D;
 if (verbose > 2)
-  printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated (x %d)\n", RING, FEN, readout_data.channel, readout_data.a, readout_data.b, double_tof, event_count);
+  printf("(%2u %2u %2u) %5u %5u %0.10f -- Accumulated\n", RING, FEN, readout_data.channel, readout_data.a, readout_data.b, double_tof);
 // Send the event to the broadcaster to be accumulated and broadcast and/or store the event to file
 readout_add(readout_ptr, RING, FEN, double_tof, pp, (const void *)(&readout_data));
 
