@@ -170,5 +170,5 @@ install(FILES "${PROJECT_BINARY_DIR}/ReadoutConfigVersion.cmake" "${PROJECT_BINA
 configure_file("${PROJECT_SOURCE_DIR}/cmake/readout_config.h.in" "${CMAKE_BINARY_DIR}/readout_config.h" @ONLY)
 
 # Copy the component file to the include directory too
-file(GLOB ALL_COMPONENTS "${CMAKE_CURRENT_SOURCE_DIR}/components/*.comp")
+file(GLOB ALL_COMPONENTS "${CMAKE_CURRENT_SOURCE_DIR}/share/Readout/*.comp")
 install(FILES ${ALL_COMPONENTS} DESTINATION ${Readout_DATADIR})
